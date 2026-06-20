@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post an Ad - MarketPlace</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="logo">Jack of all</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="post.html">Post Ad</a>
+      <a href="signin.html">Sign In</a>
+    </div>
+  </nav>
+
+  <div class="form-container">
+    <h2>Post an Ad</h2>
+    <form action="#" method="POST" enctype="multipart/form-data">
+
+      <div class="form-group">
+        <label for="title">Ad Title</label>
+        <input type="text" id="title" name="title" placeholder="e.g. iPhone 13 128GB" required>
+      </div>
+
+      <div class="form-group">
+        <label for="category">Category</label>
+        <select id="category" name="category" required>
+          <option value="">-- Select Category --</option>
+          <option>Phones</option>
+          <option>Laptops</option>
+          <option>Other Electronics</option>
+          <option>Accosories</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="price">Price (GH₵)</label>
+        <input type="number" id="price" name="price" placeholder="e.g. 3500" min="0" required>
+      </div>
+
+      <div class="form-group">
+        <label for="location">Location</label>
+        <input type="text" id="location" name="location" placeholder="e.g. Accra" required>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" placeholder="Describe your item..." required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" placeholder="e.g. 0241234567" required>
+      </div>
+
+      <div class="form-group">
+        <label for="image">Upload Image</label>
+        <input type="file" id="image" name="image" accept="image/*">
+      </div>
+
+      <button type="submit" class="submit-btn">Post Ad</button>
+    </form>
+  </div>
+
+  <footer>
+    &copy; 2026 MarketPlace. All rights reserved.
+  </footer>
+
+</body>
+</html>
