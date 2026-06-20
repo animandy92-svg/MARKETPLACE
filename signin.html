@@ -61,6 +61,35 @@
       border-color: #4f46e5;
     }
 
+    /* --- New Password Toggle Styles --- */
+    .password-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .password-container input {
+      padding-right: 4rem; /* Prevents text from hiding under the button */
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 0.8rem;
+      background: none;
+      border: none;
+      color: #4f46e5;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      outline: none;
+    }
+
+    .toggle-password:hover {
+      text-decoration: underline;
+    }
+    /* ---------------------------------- */
+
     .forgot {
       display: block;
       text-align: right;
@@ -134,39 +163,6 @@
     .google-btn:hover { background: #f5f5f5; }
 
     .google-btn img { width: 20px; height: 20px; }
-
-    .password-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .password-wrapper input {
-      padding-right: 3rem;
-    }
-
-    .toggle-password {
-      position: absolute;
-      right: 0.75rem;
-      background: none;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.25rem;
-      color: #888;
-      transition: color 0.2s;
-    }
-
-    .toggle-password:hover {
-      color: #333;
-    }
-
-    .toggle-password svg {
-      width: 20px;
-      height: 20px;
-    }
   </style>
 </head>
 <body>
@@ -177,19 +173,15 @@
         <label for="email">Email</label>
         <input type="email" id="email" name="email" placeholder="you@example.com" required>
       </div>
+      
       <div class="form-group">
         <label for="password">Password</label>
-        <div class="password-wrapper">
+        <div class="password-container">
           <input type="password" id="password" name="password" placeholder="••••••••" required>
-          <button type="button" class="toggle-password" aria-label="Toggle password visibility">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path class="eye-open" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle class="eye-open" cx="12" cy="12" r="3"/>
-              <line class="eye-closed" x1="1" y1="1" x2="23" y2="23" style="display:none"/>
-            </svg>
-          </button>
+          <button type="button" id="togglePassword" class="toggle-password">Show</button>
         </div>
       </div>
+      
       <a href="#" class="forgot">Forgot password?</a>
       <button type="submit">Sign In</button>
     </form>
@@ -204,17 +196,18 @@
       Don't have an account? <a href="#">Sign up</a>
     </div>
   </div>
-  <script>
-    const toggleBtn = document.querySelector('.toggle-password');
-    const passwordInput = document.getElementById('password');
-    const eyeOpen = document.querySelectorAll('.eye-open');
-    const eyeClosed = document.querySelector('.eye-closed');
 
-    toggleBtn.addEventListener('click', () => {
-      const isPassword = passwordInput.type === 'password';
-      passwordInput.type = isPassword ? 'text' : 'password';
-      eyeOpen.forEach(el => el.style.display = isPassword ? 'none' : '');
-      eyeClosed.style.display = isPassword ? '' : 'none';
+  <script>
+    const togglePassword = document.querySelector('#togglePassword');
+    const passwordInput = document.querySelector('#password');
+
+    togglePassword.addEventListener('click', function () {
+      // Toggle the type attribute between 'password' and 'text'
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      
+      // Toggle the button text
+      this.textContent = type === 'password' ? 'Show' : 'Hide';
     });
   </script>
 </body>
