@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 140" fill="none">
+  <!-- Shopping bags icon - centered top -->
+  <g transform="translate(110, 10)">
+    <!-- Back bag -->
+    <rect x="20" y="18" width="32" height="36" rx="2" stroke="#9D174D" stroke-width="1.2" fill="none"/>
+    <path d="M27 18 V12 C27 6 31 2 36 2 C41 2 45 6 45 12 V18" stroke="#9D174D" stroke-width="1.2" fill="none"/>
+    <!-- Front bag -->
+    <rect x="6" y="28" width="32" height="36" rx="2" stroke="#9D174D" stroke-width="1.2" fill="none"/>
+    <path d="M13 28 V22 C13 16 17 12 22 12 C27 12 31 16 31 22 V28" stroke="#9D174D" stroke-width="1.2" fill="none"/>
+    <!-- Smiley on front bag -->
+    <circle cx="15" cy="44" r="1.5" fill="#9D174D"/>
+    <circle cx="27" cy="44" r="1.5" fill="#9D174D"/>
+    <path d="M14 50 C14 53 28 53 28 50" stroke="#9D174D" stroke-width="1.2" fill="none"/>
+  </g>
+  <!-- Brand name - centered -->
+  <text x="140" y="95" text-anchor="middle" font-family="Georgia, serif" font-size="32" font-weight="bold" fill="#111827">Jack of all Trades</text>
+  <!-- Tagline - centered -->
+  <text x="140" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" letter-spacing="4" fill="#6B7280">DREAM IT, OWN IT.</text>
+</svg>

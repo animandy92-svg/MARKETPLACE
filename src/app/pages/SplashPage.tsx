@@ -42,8 +42,8 @@ export function SplashPage({ onComplete }: SplashPageProps) {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
             >
-              <div className="w-32 h-32 mx-auto mb-4 flex items-center justify-center">
-                <img src={logoWhiteSvg} alt="Jack of all Trades" className="w-full h-full" />
+              <div className="w-64 mx-auto mb-4 flex items-center justify-center">
+                <img src={logoWhiteSvg} alt="Jack of all Trades" className="w-full h-auto" />
               </div>
             </motion.div>
 
