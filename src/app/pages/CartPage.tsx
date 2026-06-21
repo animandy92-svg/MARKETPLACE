@@ -5,6 +5,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { useCart } from '../contexts/CartContext';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { formatCurrency } from '../utils/formatCurrency';
 
 export function CartPage() {
   const { items, removeFromCart, updateQuantity, total, clearCart } = useCart();
@@ -59,7 +60,7 @@ export function CartPage() {
                         {item.name}
                       </Link>
                       <span className="font-bold whitespace-nowrap">
-                        ${item.price * item.quantity}
+                        {formatCurrency(item.price * item.quantity)}
                       </span>
                     </div>
 
@@ -125,7 +126,7 @@ export function CartPage() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatCurrency(total)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shipping</span>
@@ -133,7 +134,7 @@ export function CartPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tax</span>
-                  <span>${(total * 0.1).toFixed(2)}</span>
+                  <span>{formatCurrency(total * 0.1)}</span>
                 </div>
               </div>
 
@@ -141,7 +142,7 @@ export function CartPage() {
 
               <div className="flex justify-between text-xl font-bold">
                 <span>Total</span>
-                <span>${(total * 1.1).toFixed(2)}</span>
+                <span>{formatCurrency(total * 1.1)}</span>
               </div>
 
               <Button className="w-full" size="lg">

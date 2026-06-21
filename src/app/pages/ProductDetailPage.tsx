@@ -7,6 +7,7 @@ import { Separator } from '../components/ui/separator';
 import { products } from '../data/products';
 import { useCart } from '../contexts/CartContext';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { formatCurrency } from '../utils/formatCurrency';
 import { toast } from 'sonner';
 
 export function ProductDetailPage() {
@@ -85,7 +86,7 @@ export function ProductDetailPage() {
           <Separator />
 
           <div>
-            <p className="text-3xl font-bold mb-2">${product.price}</p>
+            <p className="text-3xl font-bold mb-2">{formatCurrency(product.price)}</p>
             {product.stock < 10 && (
               <p className="text-sm text-destructive">
                 Only {product.stock} left in stock!

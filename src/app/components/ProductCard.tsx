@@ -6,6 +6,7 @@ import { Badge } from './ui/badge';
 import { Product } from '../data/products';
 import { useCart } from '../contexts/CartContext';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { formatCurrency } from '../utils/formatCurrency';
 
 interface ProductCardProps {
   product: Product;
@@ -50,7 +51,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </CardContent>
         
         <CardFooter className="p-4 pt-0 flex items-center justify-between">
-          <span className="text-2xl font-bold">${product.price}</span>
+          <span className="text-2xl font-bold">{formatCurrency(product.price)}</span>
           <Button size="sm" onClick={handleAddToCart}>
             <ShoppingCart className="h-4 w-4 mr-2" />
             Add

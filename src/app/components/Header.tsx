@@ -28,6 +28,9 @@ export function Header() {
           <Link to="/products?category=accessory" className="text-sm hover:text-primary transition-colors">
             Accessories
           </Link>
+          <Link to="/sell" className="text-sm hover:text-primary transition-colors">
+            Sell
+          </Link>
         </nav>
 
         <Link to="/cart">
