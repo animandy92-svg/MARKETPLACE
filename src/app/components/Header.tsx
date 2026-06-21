@@ -12,7 +12,7 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
           <Store className="h-6 w-6" />
-          <span className="text-xl font-semibold">TechMarket</span>
+          <span className="text-xl font-semibold">Jack of all Trades</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
