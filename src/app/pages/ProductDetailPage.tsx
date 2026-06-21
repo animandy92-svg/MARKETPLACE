@@ -36,7 +36,9 @@ export function ProductDetailPage() {
 
   const categoryLabel = {
     phone: 'Phone',
-    laptop: 'Laptop & Tablet',
+    laptop: 'Laptop',
+    tablet: 'Tablet',
+    smartwatch: 'Smartwatch',
     accessory: 'Accessory',
   }[product.category];
 

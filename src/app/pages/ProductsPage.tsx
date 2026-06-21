@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProductCard } from '../components/ProductCard';
 import { products } from '../data/products';
@@ -72,6 +72,8 @@ export function ProductsPage() {
             <SelectItem value="all">All Categories</SelectItem>
             <SelectItem value="phone">Phones</SelectItem>
             <SelectItem value="laptop">Laptops</SelectItem>
+            <SelectItem value="tablet">Tablets</SelectItem>
+            <SelectItem value="smartwatch">Smartwatches</SelectItem>
             <SelectItem value="accessory">Accessories</SelectItem>
           </SelectContent>
         </Select>

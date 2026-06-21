@@ -11,7 +11,7 @@ export function Layout() {
       </main>
       <footer className="border-t py-8 mt-12">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2026 TechMarket. All rights reserved.</p>
+          <p>© 2026 Jack of all Trades. All rights reserved.</p>
         </div>
       </footer>
       <Toaster />
