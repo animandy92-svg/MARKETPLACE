@@ -1,5 +1,4 @@
-import { Link } from 'react-router';
-import { Smartphone, Laptop, Headphones, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { ProductCard } from '../components/ProductCard';
@@ -8,19 +7,19 @@ import { products } from '../data/products';
 const categories = [
   {
     name: 'Phones',
-    icon: Smartphone,
+    icon: '📱',
     description: 'Latest smartphones from top brands',
     link: '/products?category=phone',
   },
   {
     name: 'Laptops',
-    icon: Laptop,
+    icon: '💻',
     description: 'Powerful laptops and tablets',
     link: '/products?category=laptop',
   },
   {
     name: 'Accessories',
-    icon: Headphones,
+    icon: '🎧',
     description: 'Enhance your tech experience',
     link: '/products?category=accessory',
   },

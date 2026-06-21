@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router-dom';
 import { ProductCard } from '../components/ProductCard';
 import { products } from '../data/products';
 import {
