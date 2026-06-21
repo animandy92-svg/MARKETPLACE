@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { ProductCard } from '../components/ProductCard';
 import { products } from '../data/products';
 import {
@@ -10,7 +11,7 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import { Input } from '../components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 
 export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,6 +19,24 @@ export function ProductsPage() {
   const [sortBy, setSortBy] = useState('name');
 
   const categoryFilter = searchParams.get('category') || 'all';
+
+  const categoryLabels: Record<string, string> = {
+    all: 'All Products',
+    phone: 'Phones',
+    laptop: 'Laptops',
+    tablet: 'Tablets',
+    smartwatch: 'Smartwatches',
+    accessory: 'Accessories',
+  };
+
+  const categoryGradients: Record<string, string> = {
+    all: 'from-primary to-purple-600',
+    phone: 'from-blue-500 to-indigo-600',
+    laptop: 'from-emerald-500 to-teal-600',
+    tablet: 'from-amber-500 to-orange-600',
+    smartwatch: 'from-rose-500 to-pink-600',
+    accessory: 'from-cyan-500 to-sky-600',
+  };
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
@@ -49,60 +68,114 @@ export function ProductsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Products</h1>
-
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search products..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+    <div className="min-h-screen">
+      {/* Gradient Header */}
+      <div
+        className={`relative overflow-hidden bg-gradient-to-r ${categoryGradients[categoryFilter] || categoryGradients.all} py-12 px-4`}
+      >
+        {/* Decorative elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white/10 blur-2xl" />
         </div>
 
-        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="phone">Phones</SelectItem>
-            <SelectItem value="laptop">Laptops</SelectItem>
-            <SelectItem value="tablet">Tablets</SelectItem>
-            <SelectItem value="smartwatch">Smartwatches</SelectItem>
-            <SelectItem value="accessory">Accessories</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="container mx-auto relative z-10">
+          <motion.h1
+            className="text-4xl md:text-5xl font-bold text-white mb-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {categoryLabels[categoryFilter] || 'All Products'}
+          </motion.h1>
+          <motion.p
+            className="text-white/80"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+          >
+            {sortedProducts.length} products available
+          </motion.p>
+        </div>
+      </div>
 
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name">Name</SelectItem>
-            <SelectItem value="price-low">Price: Low to High</SelectItem>
-            <SelectItem value="price-high">Price: High to Low</SelectItem>
-            <SelectItem value="rating">Rating</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Filters */}
+      <div className="container mx-auto px-4 py-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="flex flex-col md:flex-row gap-4 bg-white rounded-2xl shadow-lg shadow-primary/5 p-4 border border-border/50"
+        >
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+            <Select value={categoryFilter} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="w-full md:w-[180px] bg-muted/50 border-0">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="phone">Phones</SelectItem>
+                <SelectItem value="laptop">Laptops</SelectItem>
+                <SelectItem value="tablet">Tablets</SelectItem>
+                <SelectItem value="smartwatch">Smartwatches</SelectItem>
+                <SelectItem value="accessory">Accessories</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full md:w-[180px] bg-muted/50 border-0">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+            </SelectContent>
+          </Select>
+        </motion.div>
       </div>
 
       {/* Products Grid */}
-      {sortedProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sortedProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">No products found matching your criteria.</p>
-        </div>
-      )}
+      <div className="container mx-auto px-4 pb-12">
+        {sortedProducts.length > 0 ? (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={categoryFilter + sortBy}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            >
+              {sortedProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-16"
+          >
+            <div className="text-6xl mb-4">🔍</div>
+            <p className="text-muted-foreground text-lg">No products found matching your criteria.</p>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }
