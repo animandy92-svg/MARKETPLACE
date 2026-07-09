@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardFooter } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
 import logoSvg from '../../assets/logo.svg';
 
 export function SignUpPage() {
@@ -16,28 +17,42 @@ export function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { signUp, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
-
     setIsLoading(true);
+    try {
+      await signUp(email, password, name);
+      toast.success('Account created successfully!', { description: 'Welcome to Jack of all Trades.' });
+      navigate('/');
+    } catch (err: any) {
+      const message = err.code === 'auth/email-already-in-use' ? 'An account with this email already exists' : 'Sign up failed. Please try again.';
+      toast.error('Sign up failed', { description: message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    setIsLoading(false);
-    toast.success('Account created successfully!', {
-      description: 'Welcome to Jack of all Trades.',
-    });
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      toast.success('Signed in with Google!', { description: 'Welcome to Jack of all Trades.' });
+      navigate('/');
+    } catch (err: any) {
+      if (err.code !== 'auth/popup-closed-by-user') {
+        toast.error('Google sign in failed', { description: 'Please try again.' });
+      }
+    }
   };
 
   return (
     <div className="min-h-[calc(100vh-12rem)] flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background decorative elements */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-32 right-10 w-80 h-80 rounded-full bg-purple-500/5 blur-3xl" />
         <div className="absolute bottom-10 left-10 w-64 h-64 rounded-full bg-primary/5 blur-3xl" />
@@ -50,7 +65,6 @@ export function SignUpPage() {
         className="w-full max-w-md relative z-10"
       >
         <Card className="border-0 shadow-2xl shadow-primary/10 overflow-hidden">
-          {/* Gradient header */}
           <div className="bg-gradient-to-r from-purple-600 to-primary py-6 px-6 text-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -65,134 +79,53 @@ export function SignUpPage() {
 
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <motion.div
-                className="space-y-2"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
-              >
-                <label htmlFor="name" className="text-sm font-medium">
-                  Full Name
-                </label>
+              <motion.div className="space-y-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.3 }}>
+                <label htmlFor="name" className="text-sm font-medium">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30"
-                    required
-                  />
+                  <Input id="name" type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} className="pl-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30" required />
                 </div>
               </motion.div>
 
-              <motion.div
-                className="space-y-2"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4, duration: 0.3 }}
-              >
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
+              <motion.div className="space-y-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4, duration: 0.3 }}>
+                <label htmlFor="email" className="text-sm font-medium">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30"
-                    required
-                  />
+                  <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30" required />
                 </div>
               </motion.div>
 
-              <motion.div
-                className="space-y-2"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5, duration: 0.3 }}
-              >
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
+              <motion.div className="space-y-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5, duration: 0.3 }}>
+                <label htmlFor="password" className="text-sm font-medium">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9 pr-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
+                  <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9 pr-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30" required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </motion.div>
 
-              <motion.div
-                className="space-y-2"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6, duration: 0.3 }}
-              >
-                <label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirm Password
-                </label>
+              <motion.div className="space-y-2" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6, duration: 0.3 }}>
+                <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="confirmPassword"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Confirm your password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30"
-                    required
-                  />
+                  <Input id="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="Confirm your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pl-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30" required />
                 </div>
               </motion.div>
 
-              <motion.div
-                className="flex items-start gap-2 text-sm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7, duration: 0.3 }}
-              >
+              <motion.div className="flex items-start gap-2 text-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.3 }}>
                 <input type="checkbox" className="mt-1 rounded border-primary/30" required />
                 <span className="text-muted-foreground">
                   I agree to the{' '}
-                  <Link to="/terms" className="text-primary hover:underline">
-                    Terms of Service
-                  </Link>{' '}
-                  and{' '}
-                  <Link to="/privacy" className="text-primary hover:underline">
-                    Privacy Policy
-                  </Link>
+                  <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
                 </span>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8, duration: 0.3 }}
-              >
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-purple-600 to-primary hover:opacity-90 shadow-lg shadow-primary/20"
-                  disabled={isLoading}
-                >
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.3 }}>
+                <Button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-primary hover:opacity-90 shadow-lg shadow-primary/20" disabled={isLoading}>
                   {isLoading ? 'Creating account...' : 'Create Account'}
                 </Button>
               </motion.div>
@@ -200,12 +133,10 @@ export function SignUpPage() {
 
             <div className="relative my-6">
               <Separator className="bg-gradient-to-r from-transparent via-border to-transparent" />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground">
-                OR
-              </span>
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground">OR</span>
             </div>
 
-            <Button variant="outline" className="w-full border-primary/20 hover:bg-primary/5 hover:border-primary/40">
+            <Button variant="outline" className="w-full border-primary/20 hover:bg-primary/5 hover:border-primary/40" onClick={handleGoogleSignIn}>
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -219,9 +150,7 @@ export function SignUpPage() {
           <CardFooter className="justify-center bg-muted/30 py-4">
             <p className="text-sm text-muted-foreground">
               Already have an account?{' '}
-              <Link to="/signin" className="text-primary hover:underline font-medium">
-                Sign in
-              </Link>
+              <Link to="/signin" className="text-primary hover:underline font-medium">Sign in</Link>
             </p>
           </CardFooter>
         </Card>

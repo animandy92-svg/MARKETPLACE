@@ -1,13 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, User, LogOut, LayoutDashboard, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { toast } from 'sonner';
 import logoSvg from '../../assets/logo.svg';
 
 export function Header() {
   const { itemCount } = useCart();
+  const { user, signOut } = useAuth();
   const location = useLocation();
 
   const navLinks = [
@@ -23,6 +27,11 @@ export function Header() {
   const isActive = (path: string) => {
     const base = path.split('?')[0];
     return location.pathname === base;
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success('Signed out successfully');
   };
 
   return (
@@ -57,11 +66,41 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <Link to="/signin">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
-              Sign In
-            </Button>
-          </Link>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden md:inline">{user.name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer">
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/wishlist" className="flex items-center gap-2 cursor-pointer">
+                    <Heart className="h-4 w-4" />
+                    Wishlist
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 cursor-pointer text-destructive">
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/signin">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                Sign In
+              </Button>
+            </Link>
+          )}
           <Link to="/cart">
             <Button variant="outline" size="sm" className="relative border-primary/20 hover:border-primary/40 hover:bg-primary/5">
               <ShoppingCart className="h-4 w-4" />
@@ -87,7 +126,6 @@ export function Header() {
           </Link>
         </div>
       </div>
-      {/* Gradient accent line */}
       <div className="h-0.5 w-full" style={{ background: 'var(--gradient-primary)' }} />
     </header>
   );

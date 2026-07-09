@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Card, CardContent, CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { WishlistButton } from './WishlistButton';
 import { Product } from '../data/products';
 import { useCart } from '../contexts/CartContext';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -48,8 +49,10 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
                 alt={product.name}
                 className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110 group-hover:brightness-110"
               />
-              {/* Gradient overlay on hover */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute top-2 left-2">
+                <WishlistButton productId={product.id} />
+              </div>
               {product.stock < 10 && (
                 <Badge variant="destructive" className="absolute top-2 right-2 shadow-lg">
                   Low Stock

@@ -1,0 +1,22 @@
+{
+  "name": "Jack of all Trades",
+  "short_name": "JAT Marketplace",
+  "description": "Your one-stop tech marketplace for the latest devices and accessories",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

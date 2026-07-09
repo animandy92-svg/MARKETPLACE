@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardFooter } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
 import logoSvg from '../../assets/logo.svg';
 
 export function SignInPage() {
@@ -14,22 +15,38 @@ export function SignInPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { signIn, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    try {
+      await signIn(email, password);
+      toast.success('Signed in successfully!', { description: 'Welcome back to Jack of all Trades.' });
+      navigate('/');
+    } catch (err: any) {
+      const message = err.code === 'auth/invalid-credential' ? 'Invalid email or password' : 'Sign in failed. Please try again.';
+      toast.error('Sign in failed', { description: message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    setIsLoading(false);
-    toast.success('Signed in successfully!', {
-      description: 'Welcome back to Jack of all Trades.',
-    });
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      toast.success('Signed in with Google!', { description: 'Welcome to Jack of all Trades.' });
+      navigate('/');
+    } catch (err: any) {
+      if (err.code !== 'auth/popup-closed-by-user') {
+        toast.error('Google sign in failed', { description: 'Please try again.' });
+      }
+    }
   };
 
   return (
     <div className="min-h-[calc(100vh-12rem)] flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background decorative elements */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute bottom-20 right-10 w-64 h-64 rounded-full bg-purple-500/5 blur-3xl" />
@@ -42,7 +59,6 @@ export function SignInPage() {
         className="w-full max-w-md relative z-10"
       >
         <Card className="border-0 shadow-2xl shadow-primary/10 overflow-hidden">
-          {/* Gradient header */}
           <div className="bg-gradient-to-r from-primary to-purple-600 py-6 px-6 text-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -63,9 +79,7 @@ export function SignInPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3, duration: 0.3 }}
               >
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
+                <label htmlFor="email" className="text-sm font-medium">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -86,9 +100,7 @@ export function SignInPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.3 }}
               >
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
+                <label htmlFor="password" className="text-sm font-medium">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -147,7 +159,11 @@ export function SignInPage() {
               </span>
             </div>
 
-            <Button variant="outline" className="w-full border-primary/20 hover:bg-primary/5 hover:border-primary/40">
+            <Button
+              variant="outline"
+              className="w-full border-primary/20 hover:bg-primary/5 hover:border-primary/40"
+              onClick={handleGoogleSignIn}
+            >
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -161,9 +177,7 @@ export function SignInPage() {
           <CardFooter className="justify-center bg-muted/30 py-4">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-primary hover:underline font-medium">
-                Sign up
-              </Link>
+              <Link to="/signup" className="text-primary hover:underline font-medium">Sign up</Link>
             </p>
           </CardFooter>
         </Card>
