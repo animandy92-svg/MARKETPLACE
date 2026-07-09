@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Product } from '../data/products';
+import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useAuth } from './AuthContext';
+import { Product } from '../data/products';
 
 interface CartItem extends Product {
   quantity: number;
@@ -18,8 +20,6 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
 function loadFromStorage(): CartItem[] {
   try {
     const data = localStorage.getItem('cart_items');
@@ -35,60 +35,66 @@ function saveToStorage(items: CartItem[]) {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(loadFromStorage);
-  const { user, token } = useAuth();
+  const { user } = useAuth();
 
-  // Sync from API when user logs in
+  // Sync from Firestore when user logs in
   useEffect(() => {
-    if (user && token) {
-      fetch(`${API_URL}/api/cart`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(res => res.ok ? res.json() : [])
-        .then((serverItems: any[]) => {
-          if (serverItems.length > 0) {
-            const mapped: CartItem[] = serverItems.map((i: any) => ({
-              id: String(i.product_id),
-              name: i.name,
-              category: i.category,
-              price: i.price,
-              description: i.description,
-              image: i.image,
-              specs: JSON.parse(i.specs),
-              stock: i.stock,
-              rating: i.rating,
-              quantity: i.quantity,
-            }));
-            // Merge: keep local items not on server, then add server items
-            const localOnly = items.filter(li => !mapped.some(si => si.id === li.id));
-            const merged = [...mapped, ...localOnly];
-            setItems(merged);
-            saveToStorage(merged);
-          }
-        })
-        .catch(() => {});
+    if (user) {
+      const cartRef = collection(db, 'users', user.id, 'cart');
+      getDocs(cartRef).then((snapshot) => {
+        if (!snapshot.empty) {
+          const firestoreItems: CartItem[] = snapshot.docs.map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              name: data.name || '',
+              category: data.category || 'accessory',
+              price: data.price || 0,
+              description: data.description || '',
+              image: data.image || '',
+              specs: data.specs || [],
+              stock: data.stock || 0,
+              rating: data.rating || 0,
+              quantity: data.quantity || 1,
+            };
+          });
+          // Merge with local items
+          const localOnly = items.filter((li) => !firestoreItems.some((fi) => fi.id === li.id));
+          const merged = [...firestoreItems, ...localOnly];
+          setItems(merged);
+          saveToStorage(merged);
+        }
+      }).catch(() => {});
     }
-  }, [user, token]);
+  }, [user]);
 
-  // Save to localStorage on every change
   useEffect(() => {
     saveToStorage(items);
   }, [items]);
 
   const addToCart = (product: Product) => {
     setItems((currentItems) => {
-      const existingItem = currentItems.find((item) => item.id === product.id);
-      const newItems = existingItem
+      const existing = currentItems.find((item) => item.id === product.id);
+      const newItems = existing
         ? currentItems.map((item) =>
             item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
           )
         : [...currentItems, { ...product, quantity: 1 }];
 
-      // Sync to API if logged in
-      if (user && token) {
-        fetch(`${API_URL}/api/cart`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ productId: Number(product.id), quantity: 1 }),
+      // Sync to Firestore
+      if (user) {
+        const cartDoc = doc(db, 'users', user.id, 'cart', product.id);
+        const qty = existing ? existing.quantity + 1 : 1;
+        setDoc(cartDoc, {
+          quantity: qty,
+          name: product.name,
+          category: product.category,
+          price: product.price,
+          description: product.description,
+          image: product.image,
+          specs: product.specs,
+          stock: product.stock,
+          rating: product.rating,
         }).catch(() => {});
       }
 
@@ -97,12 +103,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromCart = (productId: string) => {
-    setItems((currentItems) => currentItems.filter((item) => item.id !== productId));
-    if (user && token) {
-      fetch(`${API_URL}/api/cart/${productId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
+    setItems((current) => current.filter((item) => item.id !== productId));
+    if (user) {
+      deleteDoc(doc(db, 'users', user.id, 'cart', productId)).catch(() => {});
     }
   };
 
@@ -111,26 +114,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeFromCart(productId);
       return;
     }
-    setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === productId ? { ...item, quantity } : item
-      )
+    setItems((current) =>
+      current.map((item) => (item.id === productId ? { ...item, quantity } : item))
     );
-    if (user && token) {
-      fetch(`${API_URL}/api/cart/${productId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ quantity }),
-      }).catch(() => {});
+    if (user) {
+      setDoc(doc(db, 'users', user.id, 'cart', productId), { quantity }, { merge: true }).catch(() => {});
     }
   };
 
   const clearCart = () => {
     setItems([]);
-    if (user && token) {
-      fetch(`${API_URL}/api/cart`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+    if (user) {
+      const cartRef = collection(db, 'users', user.id, 'cart');
+      getDocs(cartRef).then((snap) => {
+        const batch = writeBatch(db);
+        snap.docs.forEach((d) => batch.delete(d.ref));
+        batch.commit().catch(() => {});
       }).catch(() => {});
     }
   };

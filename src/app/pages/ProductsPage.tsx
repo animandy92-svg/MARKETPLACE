@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { collection, getDocs, query, where, orderBy, limit as firestoreLimit } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { ProductCard } from '../components/ProductCard';
 import {
   Select,
@@ -13,20 +15,6 @@ import { Input } from '../components/ui/input';
 import { Switch } from '../components/ui/switch';
 import { Label } from '../components/ui/label';
 import { Search, SlidersHorizontal, Loader2 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  description: string;
-  image: string;
-  specs: string[];
-  stock: number;
-  rating: number;
-}
 
 export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -60,27 +48,67 @@ export function ProductsPage() {
   };
 
   useEffect(() => {
-    const debounce = setTimeout(() => {
+    const debounce = setTimeout(async () => {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (categoryFilter !== 'all') params.set('category', categoryFilter);
-      if (searchQuery) params.set('search', searchQuery);
-      if (minPrice) params.set('minPrice', minPrice);
-      if (maxPrice) params.set('maxPrice', maxPrice);
-      if (minRating) params.set('minRating', minRating);
-      if (inStockOnly) params.set('inStock', 'true');
-      params.set('sort', sortBy);
+      try {
+        let q: any = collection(db, 'products');
 
-      fetch(`${API_URL}/api/products?${params}`)
-        .then(res => res.json())
-        .then(data => {
-          setProducts(data.products || []);
-          setLoading(false);
-        })
-        .catch(() => {
-          setProducts([]);
-          setLoading(false);
-        });
+        // Build Firestore query with basic filters
+        const constraints: any[] = [];
+        if (categoryFilter && categoryFilter !== 'all') {
+          constraints.push(where('category', '==', categoryFilter));
+        }
+        if (inStockOnly) {
+          constraints.push(where('stock', '>', 0));
+        }
+
+        // Sorting
+        switch (sortBy) {
+          case 'price-low':
+            constraints.push(orderBy('price', 'asc'));
+            break;
+          case 'price-high':
+            constraints.push(orderBy('price', 'desc'));
+            break;
+          case 'rating':
+            constraints.push(orderBy('rating', 'desc'));
+            break;
+          default:
+            constraints.push(orderBy('name', 'asc'));
+        }
+
+        q = query(q, ...constraints);
+        const snapshot = await getDocs(q);
+        let items = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as any[];
+
+        // Client-side filtering for fields that need compound queries
+        if (searchQuery) {
+          const s = searchQuery.toLowerCase();
+          items = items.filter(
+            (p: any) =>
+              p.name.toLowerCase().includes(s) ||
+              p.description.toLowerCase().includes(s)
+          );
+        }
+        if (minPrice) {
+          items = items.filter((p: any) => p.price >= parseFloat(minPrice));
+        }
+        if (maxPrice) {
+          items = items.filter((p: any) => p.price <= parseFloat(maxPrice));
+        }
+        if (minRating && minRating !== 'any') {
+          items = items.filter((p: any) => p.rating >= parseFloat(minRating));
+        }
+
+        setProducts(items);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setProducts([]);
+      }
+      setLoading(false);
     }, 300);
 
     return () => clearTimeout(debounce);
@@ -110,34 +138,20 @@ export function ProductsPage() {
           >
             {categoryLabels[categoryFilter] || 'All Products'}
           </motion.h1>
-          <motion.p
-            className="text-white/80"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
+          <motion.p className="text-white/80" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             {products.length} products available
           </motion.p>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl shadow-lg shadow-primary/5 p-4 border border-border/50 space-y-4"
-        >
-          {/* Search + Sort Row */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="bg-white rounded-2xl shadow-lg shadow-primary/5 p-4 border border-border/50 space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30"
-              />
+              <Input placeholder="Search products..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/30" />
             </div>
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
@@ -168,28 +182,15 @@ export function ProductsPage() {
             </Select>
           </div>
 
-          {/* Advanced Filters Row */}
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground mb-1 block">Min Price</Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  className="w-24 bg-muted/50 border-0"
-                />
+                <Input type="number" placeholder="0" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className="w-24 bg-muted/50 border-0" />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground mb-1 block">Max Price</Label>
-                <Input
-                  type="number"
-                  placeholder="9999"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  className="w-24 bg-muted/50 border-0"
-                />
+                <Input type="number" placeholder="9999" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="w-24 bg-muted/50 border-0" />
               </div>
             </div>
             <div>
@@ -221,15 +222,10 @@ export function ProductsPage() {
           </div>
         ) : products.length > 0 ? (
           <AnimatePresence mode="wait">
-            <motion.div
-              key={categoryFilter + sortBy + searchQuery}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            >
+            <motion.div key={categoryFilter + sortBy + searchQuery} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
+                <ProductCard key={product.id} product={product as any} index={index} />
               ))}
             </motion.div>
           </AnimatePresence>
@@ -242,4 +238,16 @@ export function ProductsPage() {
       </div>
     </div>
   );
+}
+
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  image: string;
+  specs: string[];
+  stock: number;
+  rating: number;
 }

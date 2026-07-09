@@ -3,3 +3,7 @@ node_modules
 .env.local
 dist
 server/db/marketplace.db
+functions/node_modules
+functions/lib
+.firebase
+*.log

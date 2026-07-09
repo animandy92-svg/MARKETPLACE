@@ -1,30 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
+import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { Button } from './ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface WishlistButtonProps {
   productId: string;
 }
 
 export function WishlistButton({ productId }: WishlistButtonProps) {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
-    if (!user || !token) return;
-    fetch(`${API_URL}/api/wishlist`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then((items: any[]) => {
-        setIsWishlisted(items.some(i => String(i.product_id) === productId));
-      })
-      .catch(() => {});
-  }, [user, token, productId]);
+    if (!user) return;
+    getDoc(doc(db, 'users', user.id, 'wishlist', productId)).then((snap) => {
+      setIsWishlisted(snap.exists());
+    }).catch(() => {});
+  }, [user, productId]);
 
   const toggle = async () => {
     if (!user) {
@@ -32,17 +27,16 @@ export function WishlistButton({ productId }: WishlistButtonProps) {
       return;
     }
 
+    const wishlistRef = doc(db, 'users', user.id, 'wishlist', productId);
+
     if (isWishlisted) {
-      await fetch(`${API_URL}/api/wishlist/${productId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await deleteDoc(wishlistRef);
       setIsWishlisted(false);
       toast.success('Removed from wishlist');
     } else {
-      await fetch(`${API_URL}/api/wishlist/${productId}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+      await setDoc(wishlistRef, {
+        product_id: productId,
+        created_at: serverTimestamp(),
       });
       setIsWishlisted(true);
       toast.success('Added to wishlist');

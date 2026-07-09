@@ -4,11 +4,13 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"node server/index.js\"",
+    "dev": "concurrently \"vite\" \"firebase emulators:start --only functions,firestore\"",
     "dev:frontend": "vite",
-    "dev:backend": "node server/index.js",
+    "dev:backend": "cd functions && npm run serve",
     "build": "vite build",
-    "seed": "node server/db/seed.js"
+    "build:functions": "cd functions && npm run build",
+    "deploy": "npm run build && firebase deploy",
+    "seed": "node scripts/migrate-to-firestore.js"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -12,12 +14,11 @@ import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { formatCurrency } from '../utils/formatCurrency';
 import { toast } from 'sonner';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const PAYSTACK_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
 
 export function CheckoutPage() {
   const { items, total, clearCart } = useCart();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [shippingAddress, setShippingAddress] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -44,101 +45,88 @@ export function CheckoutPage() {
       toast.error('Please enter a shipping address');
       return;
     }
-
-    if (!PAYSTACK_KEY) {
-      toast.error('Payment system not configured', { description: 'Please set up Paystack keys in .env' });
+    if (!user) {
+      toast.error('Please sign in to checkout');
       return;
     }
 
-    setIsProcessing(true);
-
-    try {
-      // Initialize Paystack transaction
-      const initRes = await fetch(`${API_URL}/api/payments/initialize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          email: user?.email,
-          amount: grandTotal,
-          metadata: {
-            userId: user?.id,
-            itemCount: items.length,
+    // If Paystack is configured, use it; otherwise create order directly
+    if (PAYSTACK_KEY) {
+      setIsProcessing(true);
+      try {
+        // Initialize Paystack via client-side
+        const response = await fetch('https://api.paystack.co/transaction/initialize', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        }),
-      });
-
-      if (!initRes.ok) {
-        const err = await initRes.json();
-        throw new Error(err.error || 'Payment initialization failed');
-      }
-
-      const { access_code, reference } = await initRes.json();
-
-      // Load Paystack inline
-      const script = document.createElement('script');
-      script.src = 'https://js.paystack.co/v1/inline.js';
-      document.head.appendChild(script);
-
-      script.onload = () => {
-        const popup = (window as any).PaystackPop.setup({
-          key: PAYSTACK_KEY,
-          email: user?.email,
-          amount: Math.round(grandTotal * 100),
-          currency: 'GHS',
-          ref: reference,
-          onClose: () => {
-            setIsProcessing(false);
-            toast.info('Payment cancelled');
-          },
-          callback: async (response: any) => {
-            try {
-              // Verify payment
-              const verifyRes = await fetch(`${API_URL}/api/payments/verify/${response.reference}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              const verifyData = await verifyRes.json();
-
-              if (verifyData.data?.status === 'success') {
-                // Create order
-                await fetch(`${API_URL}/api/orders`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    items: items.map(i => ({
-                      productId: Number(i.id),
-                      quantity: i.quantity,
-                      price: i.price,
-                    })),
-                    total: grandTotal,
-                    tax,
-                    shippingAddress,
-                    paystackRef: response.reference,
-                  }),
-                });
-
-                clearCart();
-                toast.success('Payment successful!', { description: 'Your order has been placed.' });
-                navigate('/dashboard/orders');
-              } else {
-                toast.error('Payment verification failed');
-              }
-            } catch {
-              toast.error('Error processing order');
-            } finally {
-              setIsProcessing(false);
-            }
-          },
+          body: JSON.stringify({
+            email: user.email,
+            amount: Math.round(grandTotal * 100),
+            currency: 'GHS',
+            key: PAYSTACK_KEY,
+          }),
         });
-        popup.openIframe();
-      };
-    } catch (err: any) {
-      toast.error('Checkout failed', { description: err.message });
+
+        // For client-side Paystack, we use the inline popup
+        const script = document.createElement('script');
+        script.src = 'https://js.paystack.co/v1/inline.js';
+        document.head.appendChild(script);
+
+        script.onload = () => {
+          const popup = (window as any).PaystackPop.setup({
+            key: PAYSTACK_KEY,
+            email: user.email,
+            amount: Math.round(grandTotal * 100),
+            currency: 'GHS',
+            onClose: () => {
+              setIsProcessing(false);
+              toast.info('Payment cancelled');
+            },
+            callback: async (response: any) => {
+              // Create order in Firestore
+              await addDoc(collection(db, 'users', user.id, 'orders'), {
+                user_id: user.id,
+                total: grandTotal,
+                tax,
+                status: 'paid',
+                paystack_ref: response.reference,
+                shipping_address: shippingAddress,
+                created_at: serverTimestamp(),
+              });
+
+              clearCart();
+              toast.success('Payment successful!', { description: 'Your order has been placed.' });
+              navigate('/dashboard/orders');
+              setIsProcessing(false);
+            },
+          });
+          popup.openIframe();
+        };
+      } catch (err: any) {
+        toast.error('Checkout failed', { description: err.message });
+        setIsProcessing(false);
+      }
+    } else {
+      // No Paystack — create order directly (demo mode)
+      setIsProcessing(true);
+      try {
+        await addDoc(collection(db, 'users', user.id, 'orders'), {
+          user_id: user.id,
+          total: grandTotal,
+          tax,
+          status: 'paid',
+          paystack_ref: 'demo-order',
+          shipping_address: shippingAddress,
+          created_at: serverTimestamp(),
+        });
+
+        clearCart();
+        toast.success('Order placed!', { description: 'This is a demo order.' });
+        navigate('/dashboard/orders');
+      } catch (err: any) {
+        toast.error('Order failed', { description: err.message });
+      }
       setIsProcessing(false);
     }
   };
@@ -152,16 +140,11 @@ export function CheckoutPage() {
         </Link>
       </motion.div>
 
-      <motion.h1
-        className="text-4xl font-bold mb-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+      <motion.h1 className="text-4xl font-bold mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         Checkout
       </motion.h1>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Order Items */}
         <div className="lg:col-span-2 space-y-4">
           <Card className="border-0 shadow-lg shadow-primary/5">
             <CardContent className="p-6">
@@ -186,17 +169,12 @@ export function CheckoutPage() {
           <Card className="border-0 shadow-lg shadow-primary/5">
             <CardContent className="p-6">
               <h2 className="text-xl font-bold mb-4">Shipping Address</h2>
-              <Input
-                placeholder="Enter your full shipping address"
-                value={shippingAddress}
-                onChange={(e) => setShippingAddress(e.target.value)}
-                className="bg-muted/50"
-              />
+              <Input placeholder="Enter your full shipping address" value={shippingAddress}
+                onChange={(e) => setShippingAddress(e.target.value)} className="bg-muted/50" />
             </CardContent>
           </Card>
         </div>
 
-        {/* Payment Summary */}
         <div className="lg:col-span-1">
           <Card className="sticky top-20 border-0 shadow-xl shadow-primary/10 overflow-hidden">
             <div className="bg-gradient-to-r from-primary to-purple-600 p-4">
@@ -225,21 +203,17 @@ export function CheckoutPage() {
                 <span className="gradient-text">{formatCurrency(grandTotal)}</span>
               </div>
 
-              <Button
-                className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 shadow-lg shadow-primary/20"
-                size="lg"
-                onClick={handleCheckout}
-                disabled={isProcessing}
-              >
+              <Button className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 shadow-lg shadow-primary/20"
+                size="lg" onClick={handleCheckout} disabled={isProcessing}>
                 {isProcessing ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
                 ) : (
-                  <><CreditCard className="h-4 w-4 mr-2" /> Pay with Paystack</>
+                  <><CreditCard className="h-4 w-4 mr-2" /> {PAYSTACK_KEY ? 'Pay with Paystack' : 'Place Order'}</>
                 )}
               </Button>
 
               <p className="text-xs text-center text-muted-foreground">
-                Secure payment via Paystack
+                {PAYSTACK_KEY ? 'Secure payment via Paystack' : 'Demo mode — no payment required'}
               </p>
             </CardContent>
           </Card>

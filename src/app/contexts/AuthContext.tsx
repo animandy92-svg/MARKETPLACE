@@ -9,22 +9,21 @@ import {
   sendPasswordResetEmail,
   User as FirebaseUser,
 } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, googleProvider, db } from '../lib/firebase';
 
 interface User {
-  id: number;
-  firebaseUid: string;
+  id: string;
   email: string;
   name: string;
   role: string;
-  phone?: string;
+  phone: string;
 }
 
 interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
-  token: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -34,53 +33,52 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+async function syncUserWithFirestore(fbUser: FirebaseUser): Promise<User> {
+  const userRef = doc(db, 'users', fbUser.uid);
+  const userSnap = await getDoc(userRef);
 
-async function syncWithBackend(firebaseUser: FirebaseUser): Promise<{ user: User; token: string }> {
-  const idToken = await firebaseUser.getIdToken();
-  const res = await fetch(`${API_URL}/api/auth/firebase`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      firebaseUid: firebaseUser.uid,
-      email: firebaseUser.email,
-      name: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
-    }),
-  });
+  if (!userSnap.exists()) {
+    await setDoc(userRef, {
+      firebase_uid: fbUser.uid,
+      email: fbUser.email,
+      name: fbUser.displayName || fbUser.email?.split('@')[0] || '',
+      phone: '',
+      role: 'buyer',
+      created_at: serverTimestamp(),
+    });
+  }
 
-  if (!res.ok) throw new Error('Failed to sync with backend');
-  const data = await res.json();
-  return data;
+  const data = (await getDoc(userRef)).data()!;
+  return {
+    id: fbUser.uid,
+    email: data.email,
+    name: data.name,
+    role: data.role,
+    phone: data.phone || '',
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('auth_token'));
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
         try {
-          const { user: backendUser, token: jwt } = await syncWithBackend(fbUser);
-          setUser(backendUser);
-          setToken(jwt);
-          localStorage.setItem('auth_token', jwt);
+          const userData = await syncUserWithFirestore(fbUser);
+          setUser(userData);
         } catch (err) {
-          console.error('Backend sync failed:', err);
+          console.error('Firestore sync failed:', err);
           setUser(null);
-          setToken(null);
         }
       } else {
         setUser(null);
-        setToken(null);
-        localStorage.removeItem('auth_token');
       }
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
@@ -100,8 +98,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await firebaseSignOut(auth);
     setUser(null);
-    setToken(null);
-    localStorage.removeItem('auth_token');
   };
 
   const resetPassword = async (email: string) => {
@@ -109,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, token, signIn, signUp, signInWithGoogle, signOut, resetPassword }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, signIn, signUp, signInWithGoogle, signOut, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

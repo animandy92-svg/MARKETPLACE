@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Heart, ShoppingCart, Trash2, Loader2, Package, User, Settings } from 'lucide-react';
+import { Heart, Trash2, Loader2, Package, User, Settings } from 'lucide-react';
+import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent } from '../components/ui/card';
@@ -12,26 +14,18 @@ import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { formatCurrency } from '../utils/formatCurrency';
 import { toast } from 'sonner';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-interface OrderItem {
-  productId: number;
-  quantity: number;
-  price: number;
-}
-
 interface Order {
-  id: number;
+  id: string;
   total: number;
   tax: number;
   status: string;
-  created_at: string;
-  items: OrderItem[];
-  items_str?: string;
+  shipping_address: string;
+  created_at: any;
+  items?: any[];
 }
 
 interface WishlistItem {
-  product_id: number;
+  product_id: string;
   name: string;
   price: number;
   image: string;
@@ -39,7 +33,7 @@ interface WishlistItem {
 }
 
 export function DashboardPage() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,34 +42,44 @@ export function DashboardPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     Promise.all([
-      fetch(`${API_URL}/api/orders`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch(`${API_URL}/api/wishlist`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      getDocs(collection(db, 'users', user.id, 'orders')).then((snap) =>
+        snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Order[]
+      ),
+      getDocs(collection(db, 'users', user.id, 'wishlist')).then(async (snap) => {
+        const items: WishlistItem[] = [];
+        for (const d of snap.docs) {
+          const data = d.data();
+          items.push({
+            product_id: d.id,
+            name: data.name || '',
+            price: data.price || 0,
+            image: data.image || '',
+            category: data.category || '',
+          });
+        }
+        return items;
+      }),
     ]).then(([ordersData, wishlistData]) => {
       setOrders(ordersData || []);
       setWishlist(wishlistData || []);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [token]);
+  }, [user]);
 
-  const handleRemoveWishlist = async (productId: number) => {
-    await fetch(`${API_URL}/api/wishlist/${productId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setWishlist(prev => prev.filter(i => i.product_id !== productId));
+  const handleRemoveWishlist = async (productId: string) => {
+    if (!user) return;
+    await deleteDoc(doc(db, 'users', user.id, 'wishlist', productId));
+    setWishlist((prev) => prev.filter((i) => i.product_id !== productId));
     toast.success('Removed from wishlist');
   };
 
   const handleSaveProfile = async () => {
+    if (!user) return;
     setSaving(true);
     try {
-      await fetch(`${API_URL}/api/auth/profile`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, phone }),
-      });
+      await updateDoc(doc(db, 'users', user.id), { name, phone });
       toast.success('Profile updated');
     } catch {
       toast.error('Failed to update profile');
@@ -124,8 +128,10 @@ export function DashboardPage() {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <p className="font-bold">Order #{order.id}</p>
-                        <p className="text-sm text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
+                        <p className="font-bold">Order #{order.id.slice(0, 8)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {order.created_at?.toDate ? order.created_at.toDate().toLocaleDateString() : 'N/A'}
+                        </p>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-primary">{formatCurrency(order.total)}</p>
@@ -139,8 +145,6 @@ export function DashboardPage() {
                         </span>
                       </div>
                     </div>
-                    <Separator className="mb-4" />
-                    <p className="text-sm text-muted-foreground">{order.items?.length || 0} items</p>
                   </CardContent>
                 </Card>
               ))}
@@ -172,12 +176,8 @@ export function DashboardPage() {
                       {item.name}
                     </Link>
                     <p className="text-primary font-bold mt-1">{formatCurrency(item.price)}</p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-2 text-destructive hover:text-destructive"
-                      onClick={() => handleRemoveWishlist(item.product_id)}
-                    >
+                    <Button variant="ghost" size="sm" className="mt-2 text-destructive hover:text-destructive"
+                      onClick={() => handleRemoveWishlist(item.product_id)}>
                       <Trash2 className="h-4 w-4 mr-2" /> Remove
                     </Button>
                   </CardContent>

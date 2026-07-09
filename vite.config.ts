@@ -58,7 +58,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^http:\/\/localhost:3001\/api\/products/,
+            urlPattern: /^https:\/\/.*cloudfunctions\.net\/api\/products/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-products',
