@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, getDocs, query, where, orderBy, limit as firestoreLimit } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { categories } from '../data/categories';
 import { ProductCard } from '../components/ProductCard';
 import {
   Select,
@@ -29,61 +30,24 @@ export function ProductsPage() {
 
   const categoryFilter = searchParams.get('category') || 'all';
 
-  const categoryLabels: Record<string, string> = {
-    all: 'All Products',
-    phone: 'Phones',
-    laptop: 'Laptops',
-    tablet: 'Tablets',
-    smartwatch: 'Smartwatches',
-    accessory: 'Accessories',
-  };
-
-  const categoryGradients: Record<string, string> = {
-    all: 'from-primary to-purple-600',
-    phone: 'from-blue-500 to-indigo-600',
-    laptop: 'from-emerald-500 to-teal-600',
-    tablet: 'from-amber-500 to-orange-600',
-    smartwatch: 'from-rose-500 to-pink-600',
-    accessory: 'from-cyan-500 to-sky-600',
-  };
-
+  const categoryLabels = Object.fromEntries([['all', 'All Products'], ...categories.map((category) => [category.id, category.name])]);
+  const categoryGradients = Object.fromEntries([['all', 'from-primary to-purple-600'], ...categories.map((category) => [category.id, category.gradient])]);
   useEffect(() => {
     const debounce = setTimeout(async () => {
       setLoading(true);
       try {
-        let q: any = collection(db, 'products');
-
-        // Build Firestore query with basic filters
-        const constraints: any[] = [];
-        if (categoryFilter && categoryFilter !== 'all') {
-          constraints.push(where('category', '==', categoryFilter));
-        }
-        if (inStockOnly) {
-          constraints.push(where('stock', '>', 0));
-        }
-
-        // Sorting
-        switch (sortBy) {
-          case 'price-low':
-            constraints.push(orderBy('price', 'asc'));
-            break;
-          case 'price-high':
-            constraints.push(orderBy('price', 'desc'));
-            break;
-          case 'rating':
-            constraints.push(orderBy('rating', 'desc'));
-            break;
-          default:
-            constraints.push(orderBy('name', 'asc'));
-        }
-
-        q = query(q, ...constraints);
-        const snapshot = await getDocs(q);
+        const snapshot = await getDocs(collection(db, 'products'));
         let items = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as any[];
+        items = items.filter((item) => item.status !== 'sold' && item.active !== false);
 
+        if (categoryFilter !== 'all') items = items.filter((p) => p.category === categoryFilter);
+        if (inStockOnly) items = items.filter((p) => p.stock > 0);
+        items.sort((a, b) => sortBy === 'price-low' ? a.price - b.price
+          : sortBy === 'price-high' ? b.price - a.price
+          : sortBy === 'rating' ? b.rating - a.rating : a.name.localeCompare(b.name));
         // Client-side filtering for fields that need compound queries
         if (searchQuery) {
           const s = searchQuery.toLowerCase();
@@ -161,11 +125,7 @@ export function ProductsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="phone">Phones</SelectItem>
-                  <SelectItem value="laptop">Laptops</SelectItem>
-                  <SelectItem value="tablet">Tablets</SelectItem>
-                  <SelectItem value="smartwatch">Smartwatches</SelectItem>
-                  <SelectItem value="accessory">Accessories</SelectItem>
+                  {categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Heart, Trash2, Loader2, Package, User, Settings } from 'lucide-react';
-import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -50,7 +50,9 @@ export function DashboardPage() {
       getDocs(collection(db, 'users', user.id, 'wishlist')).then(async (snap) => {
         const items: WishlistItem[] = [];
         for (const d of snap.docs) {
-          const data = d.data();
+          const product = await getDoc(doc(db, 'products', d.id));
+          if (!product.exists()) continue;
+          const data = product.data();
           items.push({
             product_id: d.id,
             name: data.name || '',

@@ -1,0 +1,65 @@
+name: Verify marketplace
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  website-and-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm --prefix functions ci
+      - run: npm test
+      - run: npm install --global firebase-tools
+      - run: npm run test:rules
+      - run: node scripts/sync-mobile-categories.mjs --check
+      - run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ci-public-placeholder
+          VITE_FIREBASE_AUTH_DOMAIN: jack-of-all-trades-marketplace.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID: jack-of-all-trades-marketplace
+          VITE_FIREBASE_APP_ID: ci-public-placeholder
+  mobile:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        if: runner.os == 'Linux'
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.6
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build apk --debug
+        if: runner.os == 'Linux'
+      - run: flutter build ios --no-codesign
+        if: runner.os == 'macOS'
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: marketplace-debug-apk
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk

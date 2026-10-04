@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "370501488724",
+    "project_id": "jack-of-all-trades-marketplace",
+    "storage_bucket": "jack-of-all-trades-marketplace.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:370501488724:android:14d32c4c910af4636fddc1",
+        "android_client_info": {
+          "package_name": "com.jackofalltrades.marketplace"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "370501488724-pvps4gsdo2t8ske80rcdaogmjr2ictlo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaeTc88BI0BOvbSlCgSveIZjYsg_9O0Bw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "370501488724-pvps4gsdo2t8ske80rcdaogmjr2ictlo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "370501488724-5qdof2e7t8pc0h927h0kd61jtn5b0ght.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.jackofalltrades.marketplace"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

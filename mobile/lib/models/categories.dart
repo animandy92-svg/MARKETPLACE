@@ -1,0 +1,20 @@
+// Generated from src/app/data/categories.json by scripts/sync-mobile-categories.mjs.
+const categories = <String, String>{
+  "all": "All",
+  "fashion": "Fashion & Clothing",
+  "appliance": "Electrical Appliances",
+  "school": "School & Office",
+  "home": "Home & Furniture",
+  "phone": "Phones",
+  "laptop": "Laptops & Computers",
+  "electronics": "Electronics",
+  "beauty": "Beauty & Personal Care",
+  "sports": "Sports & Outdoors",
+  "grocery": "Groceries & Food",
+  "kids": "Kids & Toys",
+  "tools": "Tools & Garden",
+  "tablet": "Tablets",
+  "smartwatch": "Watches & Wearables",
+  "accessory": "Accessories",
+  "other": "More Finds",
+};

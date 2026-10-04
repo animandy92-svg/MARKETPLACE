@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { apiRequest } from '../lib/api';
 import { ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -14,14 +13,32 @@ import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { formatCurrency } from '../utils/formatCurrency';
 import { toast } from 'sonner';
 
-const PAYSTACK_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
-
 export function CheckoutPage() {
   const { items, total, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [shippingAddress, setShippingAddress] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false);
+  const [serviceReady, setServiceReady] = useState(false);
+  const verifiedReference = useRef<string | null>(null);
+
+  useEffect(() => {
+    apiRequest('/health').then((data) => { setPaymentsEnabled(data.paymentsEnabled); setServiceReady(true); })
+      .catch(() => toast.error('Checkout service is unavailable. Please try again later.'));
+  }, []);
+
+  useEffect(() => {
+    const reference = new URLSearchParams(window.location.search).get('reference');
+    if (!user || !reference || verifiedReference.current === reference) return;
+    verifiedReference.current = reference;
+    setIsProcessing(true);
+    apiRequest(`/payments/verify/${encodeURIComponent(reference)}`).then(() => {
+      toast.success('Payment verified. Your order has been placed.');
+      navigate('/dashboard/orders', { replace: true });
+    }).catch((err) => { verifiedReference.current = null; toast.error(err.message); })
+      .finally(() => setIsProcessing(false));
+  }, [user]);
 
   const tax = total * 0.1;
   const grandTotal = total + tax;
@@ -50,87 +67,27 @@ export function CheckoutPage() {
       return;
     }
 
-    // If Paystack is configured, use it; otherwise create order directly
-    if (PAYSTACK_KEY) {
-      setIsProcessing(true);
-      try {
-        // Initialize Paystack via client-side
-        const response = await fetch('https://api.paystack.co/transaction/initialize', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: user.email,
-            amount: Math.round(grandTotal * 100),
-            currency: 'GHS',
-            key: PAYSTACK_KEY,
-          }),
-        });
-
-        // For client-side Paystack, we use the inline popup
-        const script = document.createElement('script');
-        script.src = 'https://js.paystack.co/v1/inline.js';
-        document.head.appendChild(script);
-
-        script.onload = () => {
-          const popup = (window as any).PaystackPop.setup({
-            key: PAYSTACK_KEY,
-            email: user.email,
-            amount: Math.round(grandTotal * 100),
-            currency: 'GHS',
-            onClose: () => {
-              setIsProcessing(false);
-              toast.info('Payment cancelled');
-            },
-            callback: async (response: any) => {
-              // Create order in Firestore
-              await addDoc(collection(db, 'users', user.id, 'orders'), {
-                user_id: user.id,
-                total: grandTotal,
-                tax,
-                status: 'paid',
-                paystack_ref: response.reference,
-                shipping_address: shippingAddress,
-                created_at: serverTimestamp(),
-              });
-
-              clearCart();
-              toast.success('Payment successful!', { description: 'Your order has been placed.' });
-              navigate('/dashboard/orders');
-              setIsProcessing(false);
-            },
-          });
-          popup.openIframe();
-        };
-      } catch (err: any) {
-        toast.error('Checkout failed', { description: err.message });
-        setIsProcessing(false);
-      }
-    } else {
-      // No Paystack — create order directly (demo mode)
-      setIsProcessing(true);
-      try {
-        await addDoc(collection(db, 'users', user.id, 'orders'), {
-          user_id: user.id,
-          total: grandTotal,
-          tax,
-          status: 'paid',
-          paystack_ref: 'demo-order',
-          shipping_address: shippingAddress,
-          created_at: serverTimestamp(),
-        });
-
+    setIsProcessing(true);
+    try {
+      const body = {
+        items: items.map((item) => ({ productId: item.id, quantity: item.quantity })),
+        shippingAddress,
+      };
+      if (paymentsEnabled) {
+        const payment = await apiRequest('/payments/initialize', body);
+        window.location.assign(payment.authorization_url);
+      } else {
+        await apiRequest('/orders', body);
         clearCart();
-        toast.success('Order placed!', { description: 'This is a demo order.' });
+        toast.success('Order request submitted', { description: 'This order is unpaid and awaiting confirmation.' });
         navigate('/dashboard/orders');
-      } catch (err: any) {
-        toast.error('Order failed', { description: err.message });
       }
+    } catch (err: any) {
+      toast.error('Checkout failed', { description: err.message });
+    } finally {
       setIsProcessing(false);
     }
   };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
@@ -204,16 +161,16 @@ export function CheckoutPage() {
               </div>
 
               <Button className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 shadow-lg shadow-primary/20"
-                size="lg" onClick={handleCheckout} disabled={isProcessing}>
+                size="lg" onClick={handleCheckout} disabled={isProcessing || !serviceReady}>
                 {isProcessing ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
                 ) : (
-                  <><CreditCard className="h-4 w-4 mr-2" /> {PAYSTACK_KEY ? 'Pay with Paystack' : 'Place Order'}</>
+                  <><CreditCard className="h-4 w-4 mr-2" /> {paymentsEnabled ? 'Pay with Paystack' : 'Submit unpaid order'}</>
                 )}
               </Button>
 
               <p className="text-xs text-center text-muted-foreground">
-                {PAYSTACK_KEY ? 'Secure payment via Paystack' : 'Demo mode — no payment required'}
+                {paymentsEnabled ? 'Secure payment via Paystack' : 'Payment will be arranged after your order is confirmed'}
               </p>
             </CardContent>
           </Card>

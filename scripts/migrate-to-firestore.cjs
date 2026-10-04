@@ -1,57 +1,27 @@
-const { initializeApp } = require("firebase/app");
-const { getFirestore, collection, doc, setDoc, getDocs } = require("firebase/firestore");
-const Database = require("better-sqlite3");
-const path = require("path");
+const { createRequire } = require('node:module');
+const path = require('node:path');
+const Database = require('better-sqlite3');
+const fromFunctions = createRequire(path.join(__dirname, '../functions/package.json'));
+const { initializeApp, applicationDefault } = fromFunctions('firebase-admin/app');
+const { getFirestore } = fromFunctions('firebase-admin/firestore');
 
-// Firebase client config (using the same values from .env)
-const firebaseConfig = {
-  apiKey: "AIzaSyBmAWZny_iEpMkdRqw_8JUejWF0xE4PMMM",
-  authDomain: "jack-of-all-trades-marketplace.firebaseapp.com",
-  projectId: "jack-of-all-trades-marketplace",
-  appId: "1:370501488724:web:f53ee2eeb1dc47bd6fddc1",
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const sqlite = new Database(path.join(__dirname, "..", "server", "db", "marketplace.db"));
-
-async function migrateProducts() {
-  console.log("Migrating products to Firestore...");
-
-  // Check if products already exist
-  const existing = await getDocs(collection(db, "products"));
-  if (!existing.empty) {
-    console.log(`Firestore already has ${existing.size} products. Skipping.`);
+const projectId = process.env.GCLOUD_PROJECT || 'jack-of-all-trades-marketplace';
+initializeApp({ projectId, ...(process.env.FIRESTORE_EMULATOR_HOST ? {} : {credential: applicationDefault()}) });
+const db = getFirestore();
+const sqlite = new Database(path.join(__dirname, '..', 'server', 'db', 'marketplace.db'), {readonly: true});
+(async () => {
+  if (!(await db.collection('products').limit(1).get()).empty) {
+    console.log('Catalog is not empty. Skipping migration.');
     return;
   }
-
-  const products = sqlite.prepare("SELECT * FROM products").all();
-
+  const products = sqlite.prepare('SELECT * FROM products').all();
   for (const product of products) {
-    await setDoc(doc(db, "products", String(product.id)), {
-      name: product.name,
-      category: product.category,
-      price: product.price,
-      description: product.description,
-      image: product.image,
-      specs: JSON.parse(product.specs),
-      stock: product.stock,
-      rating: product.rating,
-      created_at: new Date().toISOString(),
+    await db.collection('products').doc(String(product.id)).create({
+      name: product.name, category: product.category, price: product.price,
+      description: product.description, image: product.image, specs: JSON.parse(product.specs),
+      stock: product.stock, rating: product.rating, active: true, status: 'active',
     });
-    console.log(`  ✓ ${product.name}`);
   }
-
-  console.log(`Migrated ${products.length} products to Firestore!`);
-}
-
-migrateProducts()
-  .then(() => {
-    sqlite.close();
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error("Migration failed:", err);
-    sqlite.close();
-    process.exit(1);
-  });
+  console.log(`Migrated ${products.length} products.`);
+})().catch((error) => { console.error(error.message); process.exitCode = 1; })
+  .finally(() => sqlite.close());

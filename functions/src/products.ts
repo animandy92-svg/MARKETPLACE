@@ -1,9 +1,9 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import * as functions from "firebase-functions/v1";
+import { db } from "./firebase";
 import corsMiddleware from "cors";
 
 const cors = corsMiddleware({ origin: true });
-const db = admin.firestore();
+
 
 export const getProducts = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
@@ -20,38 +20,19 @@ export const getProducts = functions.https.onRequest(async (req, res) => {
         limit = "50",
       } = req.query as Record<string, string>;
 
-      let query: FirebaseFirestore.Query = db.collection("products");
-
-      if (category && category !== "all") {
-        query = query.where("category", "==", category);
-      }
-      if (inStock === "true") {
-        query = query.where("stock", ">", 0);
-      }
-      if (minRating) {
-        query = query.where("rating", ">=", parseFloat(minRating));
-      }
-
-      switch (sort) {
-        case "price-low":
-          query = query.orderBy("price", "asc");
-          break;
-        case "price-high":
-          query = query.orderBy("price", "desc");
-          break;
-        case "rating":
-          query = query.orderBy("rating", "desc");
-          break;
-        default:
-          query = query.orderBy("name", "asc");
-      }
-
-      const snapshot = await query.get();
+      const snapshot = await db.collection('products').get();
       let products = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
+      products = products.filter((product: any) => product.status !== 'sold' && product.active !== false);
 
+      if (category && category !== 'all') products = products.filter((p: any) => p.category === category);
+      if (inStock === 'true') products = products.filter((p: any) => p.stock > 0);
+      if (minRating) products = products.filter((p: any) => p.rating >= Number(minRating));
+      products.sort((a: any, b: any) => sort === 'price-low' ? a.price - b.price
+        : sort === 'price-high' ? b.price - a.price
+        : sort === 'rating' ? b.rating - a.rating : a.name.localeCompare(b.name));
       if (search) {
         const s = search.toLowerCase();
         products = products.filter(
@@ -68,8 +49,8 @@ export const getProducts = functions.https.onRequest(async (req, res) => {
       }
 
       const total = products.length;
-      const pageNum = parseInt(page);
-      const limitNum = parseInt(limit);
+      const pageNum = Math.max(1, Math.min(100000, parseInt(page) || 1));
+      const limitNum = Math.max(1, Math.min(100, parseInt(limit) || 50));
       const offset = (pageNum - 1) * limitNum;
       const paginated = products.slice(offset, offset + limitNum);
 

@@ -11,6 +11,7 @@ import { SignInPage } from './pages/SignInPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { AdminPage } from './pages/AdminPage';
 
 export const router = createBrowserRouter([
   {
@@ -19,10 +20,11 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: HomePage },
       { path: 'products', Component: ProductsPage },
+      { path: 'admin', element: <ProtectedRoute><AdminPage /></ProtectedRoute> },
       { path: 'product/:id', Component: ProductDetailPage },
       { path: 'cart', Component: CartPage },
       { path: 'checkout', element: <ProtectedRoute><CheckoutPage /></ProtectedRoute> },
-      { path: 'sell', Component: SellerRegistrationPage },
+      { path: 'sell', element: <ProtectedRoute><SellerRegistrationPage /></ProtectedRoute> },
       { path: 'signin', Component: SignInPage },
       { path: 'signup', Component: SignUpPage },
       { path: 'forgot-password', Component: ForgotPasswordPage },

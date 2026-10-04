@@ -1,15 +1,17 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import * as functions from "firebase-functions/v1";
+import { db } from "./firebase";
 import corsMiddleware from "cors";
 import { verifyAuth } from "./middleware";
+import { validateItems, CheckoutError } from "./checkout";
+import { checkoutFailure } from "./orders";
 
 const cors = corsMiddleware({ origin: true });
-const db = admin.firestore();
+
 
 export const getCart = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "GET") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
         const userId = (req as any).user.uid;
         const snapshot = await db.collection("users").doc(userId).collection("cart").get();
@@ -35,26 +37,26 @@ export const getCart = functions.https.onRequest(async (req, res) => {
 export const addToCart = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
         const userId = (req as any).user.uid;
         const { productId, quantity = 1 } = req.body;
-        if (!productId) { res.status(400).json({ error: "productId required" }); return; }
+        validateItems([{ productId, quantity }]);
 
         const cartRef = db.collection("users").doc(userId).collection("cart").doc(String(productId));
-        const existing = await cartRef.get();
-
-        if (existing.exists) {
-          const currentQty = existing.data()?.quantity || 0;
-          await cartRef.update({ quantity: currentQty + quantity });
-        } else {
-          await cartRef.set({ quantity, product_id: productId });
-        }
+        await db.runTransaction(async (transaction) => {
+          const existing = await transaction.get(cartRef);
+          const product = await transaction.get(db.collection("products").doc(productId));
+          const newQuantity = (existing.data()?.quantity || 0) + quantity;
+          if (!product.exists || product.data()?.active === false || product.data()?.status === "sold" || newQuantity > 99 || newQuantity > product.data()?.stock) {
+            throw new CheckoutError("Requested quantity is unavailable");
+          }
+          transaction.set(cartRef, { quantity: newQuantity });
+        });
 
         res.json({ success: true });
       } catch (err) {
-        functions.logger.error("Cart add error:", err);
-        res.status(500).json({ error: "Internal server error" });
+        checkoutFailure(res, err);
       }
     });
   });
@@ -63,23 +65,26 @@ export const addToCart = functions.https.onRequest(async (req, res) => {
 export const updateCart = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "PUT") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
         const userId = (req as any).user.uid;
         const productId = req.query.productId as string;
         const { quantity } = req.body;
+        if (quantity !== 0) validateItems([{ productId, quantity }]);
+        else if (!/^[\w-]{1,128}$/.test(productId)) throw new CheckoutError("Invalid product");
 
         const cartRef = db.collection("users").doc(userId).collection("cart").doc(productId);
-        if (quantity <= 0) {
+        if (quantity === 0) {
           await cartRef.delete();
         } else {
-          await cartRef.update({ quantity });
+          const product = await db.collection("products").doc(productId).get();
+          if (!product.exists || product.data()?.active === false || product.data()?.status === "sold" || quantity > product.data()?.stock) throw new CheckoutError("Requested quantity is unavailable");
+          await cartRef.set({ quantity });
         }
 
         res.json({ success: true });
       } catch (err) {
-        functions.logger.error("Cart update error:", err);
-        res.status(500).json({ error: "Internal server error" });
+        checkoutFailure(res, err);
       }
     });
   });
@@ -88,7 +93,7 @@ export const updateCart = functions.https.onRequest(async (req, res) => {
 export const removeFromCart = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "DELETE") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
         const userId = (req as any).user.uid;
         const productId = req.query.productId as string;
@@ -105,7 +110,7 @@ export const removeFromCart = functions.https.onRequest(async (req, res) => {
 export const clearCart = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "DELETE") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
         const userId = (req as any).user.uid;
         const snapshot = await db.collection("users").doc(userId).collection("cart").get();

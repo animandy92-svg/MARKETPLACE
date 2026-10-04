@@ -7,3 +7,14 @@ functions/node_modules
 functions/lib
 .firebase
 *.log
+server/db/*.db-shm
+server/db/*.db-wal
+functions/.env*
+!functions/.env.example
+functions/.runtimeconfig.json
+**/local.properties
+**/key.properties
+**/*.jks
+**/*.keystore
+artifacts/
+public/downloads/*.apk

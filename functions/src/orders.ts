@@ -1,76 +1,54 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import * as functions from "firebase-functions/v1";
+import { FieldValue } from "firebase-admin/firestore";
 import corsMiddleware from "cors";
+import { db } from "./firebase";
 import { verifyAuth } from "./middleware";
+import { CheckoutError, validateItems, quoteItems } from "./checkout";
 
 const cors = corsMiddleware({ origin: true });
-const db = admin.firestore();
+
+export async function prepareOrder(uid: string, body: any) {
+  const items = validateItems(body?.items);
+  const shippingAddress = body?.shippingAddress;
+  if (typeof shippingAddress !== "string" || shippingAddress.trim().length < 5 || shippingAddress.length > 1000) {
+    throw new CheckoutError("Enter a full shipping address");
+  }
+  const docs = await db.getAll(...items.map((item) => db.collection("products").doc(item.productId)));
+  const products = Object.fromEntries(docs.map((doc) => [doc.id, doc.exists ? doc.data() : null]));
+  return { ...quoteItems(items, products), user_id: uid, shipping_address: shippingAddress.trim() };
+}
+
+export function checkoutFailure(res: functions.Response, err: unknown) {
+  if (err instanceof CheckoutError) { res.status(err.status).json({ error: err.message }); }
+  else { functions.logger.error("Checkout failed", err); res.status(500).json({ error: "Checkout is temporarily unavailable" }); }
+}
 
 export const getOrders = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "GET") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
-        const userId = (req as any).user.uid;
-        const snapshot = await db
-          .collection("users").doc(userId)
+        const snapshot = await db.collection("users").doc((req as any).user.uid)
           .collection("orders").orderBy("created_at", "desc").get();
-
-        const orders = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        res.json(orders);
-      } catch (err) {
-        functions.logger.error("Orders get error:", err);
-        res.status(500).json({ error: "Internal server error" });
-      }
+        res.json(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      } catch (err) { checkoutFailure(res, err); }
     });
   });
 });
 
+// An unpaid request is never represented as a completed payment.
 export const createOrder = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
-        const userId = (req as any).user.uid;
-        const { items, total, tax, shippingAddress, paystackRef } = req.body;
-        if (!items || !items.length) { res.status(400).json({ error: "items required" }); return; }
-
-        const orderRef = db.collection("users").doc(userId).collection("orders").doc();
-        await orderRef.set({
-          user_id: userId,
-          total,
-          tax: tax || 0,
-          status: "paid",
-          paystack_ref: paystackRef || null,
-          shipping_address: shippingAddress || "",
-          created_at: admin.firestore.FieldValue.serverTimestamp(),
-        });
-
-        const itemsBatch = db.batch();
-        for (const item of items) {
-          const itemRef = orderRef.collection("items").doc();
-          const productDoc = await db.collection("products").doc(String(item.productId)).get();
-          const product = productDoc.data();
-          itemsBatch.set(itemRef, {
-            product_id: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-            name: product?.name || "",
-            image: product?.image || "",
-          });
-        }
-        await itemsBatch.commit();
-
-        const cartSnapshot = await db.collection("users").doc(userId).collection("cart").get();
-        const cartBatch = db.batch();
-        cartSnapshot.docs.forEach((doc) => cartBatch.delete(doc.ref));
-        await cartBatch.commit();
-
-        res.status(201).json({ id: orderRef.id, success: true });
-      } catch (err) {
-        functions.logger.error("Order create error:", err);
-        res.status(500).json({ error: "Internal server error" });
-      }
+        const uid = (req as any).user.uid;
+        const quote = await prepareOrder(uid, req.body);
+        const orderRef = db.collection("users").doc(uid).collection("orders").doc();
+        await orderRef.set({ ...quote, status: "pending", paystack_ref: null,
+          created_at: FieldValue.serverTimestamp() });
+        res.status(201).json({ id: orderRef.id, status: "pending", total: quote.total });
+      } catch (err) { checkoutFailure(res, err); }
     });
   });
 });

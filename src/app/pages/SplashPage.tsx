@@ -6,13 +6,13 @@ interface SplashPageProps {
   onComplete: () => void;
 }
 
-const floatingDevices = [
+const floatingItems = [
   { emoji: '📱', x: '10%', y: '20%', delay: 0, duration: 7 },
-  { emoji: '💻', x: '80%', y: '15%', delay: 0.5, duration: 8 },
-  { emoji: '📲', x: '25%', y: '70%', delay: 1, duration: 6 },
-  { emoji: '⌚', x: '75%', y: '65%', delay: 1.5, duration: 7.5 },
-  { emoji: '🎧', x: '50%', y: '80%', delay: 0.3, duration: 9 },
-  { emoji: '🖥️', x: '15%', y: '45%', delay: 0.8, duration: 6.5 },
+  { emoji: '👗', x: '80%', y: '15%', delay: 0.5, duration: 8 },
+  { emoji: '📚', x: '25%', y: '70%', delay: 1, duration: 6 },
+  { emoji: '🧮', x: '75%', y: '65%', delay: 1.5, duration: 7.5 },
+  { emoji: '🏠', x: '50%', y: '80%', delay: 0.3, duration: 9 },
+  { emoji: '🔌', x: '15%', y: '45%', delay: 0.8, duration: 6.5 },
 ];
 
 export function SplashPage({ onComplete }: SplashPageProps) {
@@ -65,8 +65,8 @@ export function SplashPage({ onComplete }: SplashPageProps) {
             />
           </div>
 
-          {/* Floating device emojis */}
-          {floatingDevices.map((device, i) => (
+          {/* Floating marketplace items */}
+          {floatingItems.map((device, i) => (
             <motion.div
               key={i}
               className="absolute text-4xl opacity-15 select-none pointer-events-none"

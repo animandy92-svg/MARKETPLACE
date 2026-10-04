@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
-  onAuthStateChanged,
+  onIdTokenChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
@@ -24,6 +24,7 @@ interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -62,24 +63,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    let revision = 0;
+    const unsubscribe = onIdTokenChanged(auth, async (fbUser) => {
+      const currentRevision = ++revision;
+      setLoading(true);
       setFirebaseUser(fbUser);
       if (fbUser) {
         try {
           const userData = await syncUserWithFirestore(fbUser);
+          const token = await fbUser.getIdTokenResult();
+          if (currentRevision !== revision) return;
+          setIsAdmin(token.claims.admin === true);
           setUser(userData);
         } catch (err) {
+          if (currentRevision !== revision) return;
           console.error('Firestore sync failed:', err);
           setUser(null);
+          setIsAdmin(false);
         }
       } else {
         setUser(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     });
-    return unsubscribe;
+    return () => { revision++; unsubscribe(); };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -89,6 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, name: string) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
+    await syncUserWithFirestore(cred.user);
+    await setDoc(doc(db, 'users', cred.user.uid), { name }, { merge: true });
+    setUser(await syncUserWithFirestore(cred.user));
   };
 
   const signInWithGoogle = async () => {
@@ -105,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, signIn, signUp, signInWithGoogle, signOut, resetPassword }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, isAdmin, signIn, signUp, signInWithGoogle, signOut, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,13 +1,15 @@
 export interface Product {
   id: string;
   name: string;
-  category: 'phone' | 'laptop' | 'tablet' | 'smartwatch' | 'accessory';
+  category: string;
   price: number;
   description: string;
   image: string;
   specs: string[];
   stock: number;
   rating: number;
+  active?: boolean;
+  status?: string;
 }
 
 export const products: Product[] = [

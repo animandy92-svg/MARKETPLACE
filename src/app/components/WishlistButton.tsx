@@ -15,7 +15,7 @@ export function WishlistButton({ productId }: WishlistButtonProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setIsWishlisted(false); return; }
     getDoc(doc(db, 'users', user.id, 'wishlist', productId)).then((snap) => {
       setIsWishlisted(snap.exists());
     }).catch(() => {});

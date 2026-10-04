@@ -1,13 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch, onSnapshot, runTransaction } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './AuthContext';
 import { Product } from '../data/products';
+import { toast } from 'sonner';
 
-interface CartItem extends Product {
-  quantity: number;
-}
-
+interface CartItem extends Product { quantity: number; }
 interface CartContextType {
   items: CartItem[];
   addToCart: (product: Product) => void;
@@ -17,133 +15,98 @@ interface CartContextType {
   total: number;
   itemCount: number;
 }
-
 const CartContext = createContext<CartContextType | undefined>(undefined);
-
-function loadFromStorage(): CartItem[] {
+const GUEST_KEY = 'marketplace_guest_cart_v2';
+function loadGuest(): CartItem[] {
   try {
-    const data = localStorage.getItem('cart_items');
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
+    const data = JSON.parse(localStorage.getItem(GUEST_KEY) || '[]');
+    return Array.isArray(data) ? data.filter((item) => typeof item.id === 'string'
+      && Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 99) : [];
+  } catch { return []; }
 }
-
-function saveToStorage(items: CartItem[]) {
-  localStorage.setItem('cart_items', JSON.stringify(items));
+function saveGuest(items: CartItem[]) {
+  try { localStorage.setItem(GUEST_KEY, JSON.stringify(items)); } catch { /* Storage may be disabled. */ }
 }
-
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(loadFromStorage);
+  const [items, setItems] = useState<CartItem[]>(loadGuest);
   const { user } = useAuth();
-
-  // Sync from Firestore when user logs in
   useEffect(() => {
-    if (user) {
-      const cartRef = collection(db, 'users', user.id, 'cart');
-      getDocs(cartRef).then((snapshot) => {
-        if (!snapshot.empty) {
-          const firestoreItems: CartItem[] = snapshot.docs.map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              name: data.name || '',
-              category: data.category || 'accessory',
-              price: data.price || 0,
-              description: data.description || '',
-              image: data.image || '',
-              specs: data.specs || [],
-              stock: data.stock || 0,
-              rating: data.rating || 0,
-              quantity: data.quantity || 1,
-            };
-          });
-          // Merge with local items
-          const localOnly = items.filter((li) => !firestoreItems.some((fi) => fi.id === li.id));
-          const merged = [...firestoreItems, ...localOnly];
-          setItems(merged);
-          saveToStorage(merged);
-        }
-      }).catch(() => {});
-    }
-  }, [user]);
-
-  useEffect(() => {
-    saveToStorage(items);
-  }, [items]);
-
-  const addToCart = (product: Product) => {
-    setItems((currentItems) => {
-      const existing = currentItems.find((item) => item.id === product.id);
-      const newItems = existing
-        ? currentItems.map((item) =>
-            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-          )
-        : [...currentItems, { ...product, quantity: 1 }];
-
-      // Sync to Firestore
-      if (user) {
-        const cartDoc = doc(db, 'users', user.id, 'cart', product.id);
-        const qty = existing ? existing.quantity + 1 : 1;
-        setDoc(cartDoc, {
-          quantity: qty,
-          name: product.name,
-          category: product.category,
-          price: product.price,
-          description: product.description,
-          image: product.image,
-          specs: product.specs,
-          stock: product.stock,
-          rating: product.rating,
-        }).catch(() => {});
+    let active = true;
+    let revision = 0;
+    let unsubscribe = () => {};
+    setItems(user ? [] : loadGuest());
+    if (!user) return () => { active = false; };
+    const cartRef = collection(db, 'users', user.id, 'cart');
+    async function connect() {
+      const guest = loadGuest();
+      for (const item of guest) {
+        const ref = doc(cartRef, item.id);
+        await runTransaction(db, async (transaction) => {
+          const existing = await transaction.get(ref);
+          const quantity = Math.min(99, (existing.data()?.quantity || 0) + item.quantity);
+          transaction.set(ref, { quantity });
+        });
       }
-
-      return newItems;
-    });
+      saveGuest([]);
+      if (!active) return;
+      unsubscribe = onSnapshot(cartRef, async (snapshot) => {
+        const currentRevision = ++revision;
+        try {
+          const loaded = await Promise.all(snapshot.docs.map(async (entry) => {
+            const product = await getDoc(doc(db, 'products', entry.id));
+            return product.exists() ? { id: product.id, ...product.data(), quantity: entry.data().quantity } as CartItem : null;
+          }));
+          if (active && currentRevision === revision) setItems(loaded.filter((item): item is CartItem => item !== null));
+        } catch { if (active) toast.error('Could not load your cart'); }
+      }, () => { if (active) toast.error('Could not sync your cart'); });
+    }
+    connect().catch(() => { if (active) toast.error('Could not sync your cart'); });
+    return () => { active = false; unsubscribe(); };
+  }, [user?.id]);
+  useEffect(() => { if (!user) saveGuest(items); }, [items, user?.id]);
+  const report = () => toast.error('Could not update your cart. Please try again.');
+  const addToCart = (product: Product) => {
+    if (product.stock <= 0) { toast.error('This product is out of stock'); return; }
+    if (user) {
+      const ref = doc(db, 'users', user.id, 'cart', product.id);
+      runTransaction(db, async (transaction) => {
+        const existing = await transaction.get(ref);
+        const quantity = Math.min(99, product.stock, (existing.data()?.quantity || 0) + 1);
+        transaction.set(ref, { quantity });
+      }).catch(report);
+    } else {
+      setItems((current) => {
+        const existing = current.find((item) => item.id === product.id);
+        return existing ? current.map((item) => item.id === product.id
+          ? { ...item, quantity: Math.min(99, product.stock, item.quantity + 1) } : item)
+          : [...current, { ...product, quantity: 1 }];
+      });
+    }
   };
-
   const removeFromCart = (productId: string) => {
-    setItems((current) => current.filter((item) => item.id !== productId));
-    if (user) {
-      deleteDoc(doc(db, 'users', user.id, 'cart', productId)).catch(() => {});
-    }
+    if (user) deleteDoc(doc(db, 'users', user.id, 'cart', productId)).catch(report);
+    else setItems((current) => current.filter((item) => item.id !== productId));
   };
-
   const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    setItems((current) =>
-      current.map((item) => (item.id === productId ? { ...item, quantity } : item))
-    );
-    if (user) {
-      setDoc(doc(db, 'users', user.id, 'cart', productId), { quantity }, { merge: true }).catch(() => {});
-    }
+    if (!Number.isInteger(quantity) || quantity < 1) { removeFromCart(productId); return; }
+    const product = items.find((item) => item.id === productId);
+    const bounded = Math.min(99, product?.stock || 99, quantity);
+    if (user) setDoc(doc(db, 'users', user.id, 'cart', productId), { quantity: bounded }).catch(report);
+    else setItems((current) => current.map((item) => item.id === productId ? { ...item, quantity: bounded } : item));
   };
-
   const clearCart = () => {
-    setItems([]);
     if (user) {
-      const cartRef = collection(db, 'users', user.id, 'cart');
-      getDocs(cartRef).then((snap) => {
+      getDocs(collection(db, 'users', user.id, 'cart')).then(async (snapshot) => {
         const batch = writeBatch(db);
-        snap.docs.forEach((d) => batch.delete(d.ref));
-        batch.commit().catch(() => {});
-      }).catch(() => {});
-    }
+        snapshot.docs.forEach((entry) => batch.delete(entry.ref));
+        await batch.commit();
+      }).catch(report);
+    } else setItems([]);
   };
-
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-
-  return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, total, itemCount }}>
-      {children}
-    </CartContext.Provider>
-  );
+  return <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, total, itemCount }}>{children}</CartContext.Provider>;
 }
-
 export function useCart() {
   const context = useContext(CartContext);
   if (!context) throw new Error('useCart must be used within a CartProvider');

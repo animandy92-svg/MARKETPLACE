@@ -24,25 +24,20 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'logo.svg'],
+      includeAssets: ['logo.svg'],
       manifest: {
         name: 'Jack of all Trades',
         short_name: 'JAT Marketplace',
-        description: 'Your one-stop tech marketplace for the latest devices and accessories',
+        description: 'Your everyday marketplace for fashion, appliances, school supplies, electronics, home essentials, and more',
         theme_color: '#6366f1',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
         icons: [
           {
-            src: 'logo-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: 'logo-512.png',
-            sizes: '512x512',
-            type: 'image/png',
+            src: 'logo.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
           },
         ],
       },
@@ -75,4 +70,7 @@ export default defineConfig({
     },
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  server: {
+    watch: { ignored: ['**/mobile/**', '**/functions/lib/**', '**/artifacts/**'] },
+  },
 })

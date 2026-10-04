@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>370501488724-5qdof2e7t8pc0h927h0kd61jtn5b0ght.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.370501488724-5qdof2e7t8pc0h927h0kd61jtn5b0ght</string>
+	<key>API_KEY</key>
+	<string>AIzaSyBcX-yhbuKltuY_o0ptdf2cKG4jUOOqUHI</string>
+	<key>GCM_SENDER_ID</key>
+	<string>370501488724</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.jackofalltrades.marketplace</string>
+	<key>PROJECT_ID</key>
+	<string>jack-of-all-trades-marketplace</string>
+	<key>STORAGE_BUCKET</key>
+	<string>jack-of-all-trades-marketplace.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:370501488724:ios:78384344e93958c46fddc1</string>
+</dict>
+</plist>

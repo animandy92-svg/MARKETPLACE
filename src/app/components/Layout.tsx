@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Toaster } from './ui/sonner';
+import { categories } from '../data/categories';
 
 export function Layout() {
   return (
@@ -23,7 +24,7 @@ export function Layout() {
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-white">Jack of all Trades</h3>
                 <p className="text-sm text-indigo-200/60">
-                  Your one-stop tech marketplace for the latest devices and accessories.
+                  Your everyday marketplace for fashion, appliances, school supplies, electronics, home essentials, and more.
                 </p>
               </div>
 
@@ -31,21 +32,7 @@ export function Layout() {
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-white uppercase tracking-wider">Categories</h4>
                 <div className="space-y-2">
-                  <Link to="/products?category=phone" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    Phones
-                  </Link>
-                  <Link to="/products?category=laptop" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    Laptops
-                  </Link>
-                  <Link to="/products?category=tablet" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    Tablets
-                  </Link>
-                  <Link to="/products?category=smartwatch" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    Smartwatches
-                  </Link>
-                  <Link to="/products?category=accessory" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    Accessories
-                  </Link>
+                  {categories.slice(0, 6).map((category) => <Link key={category.id} to={'/products?category=' + category.id} className="block text-sm text-indigo-200/60 hover:text-white transition-colors">{category.name}</Link>)}
                 </div>
               </div>
 

@@ -1,0 +1,114 @@
+[
+  {
+    "id": "fashion",
+    "name": "Fashion & Clothing",
+    "icon": "👗",
+    "description": "Dresses, shoes, bags, and everyday style",
+    "gradient": "from-rose-500 to-pink-600"
+  },
+  {
+    "id": "appliance",
+    "name": "Electrical Appliances",
+    "icon": "🔌",
+    "description": "Kitchen appliances and household essentials",
+    "gradient": "from-amber-500 to-orange-600"
+  },
+  {
+    "id": "school",
+    "name": "School & Office",
+    "icon": "📚",
+    "description": "Calculators, stationery, books, and supplies",
+    "gradient": "from-blue-500 to-indigo-600"
+  },
+  {
+    "id": "home",
+    "name": "Home & Furniture",
+    "icon": "🛋️",
+    "description": "Furniture, decor, and things that make a home",
+    "gradient": "from-emerald-500 to-teal-600"
+  },
+  {
+    "id": "phone",
+    "name": "Phones",
+    "icon": "📱",
+    "description": "Smartphones for work and everyday life",
+    "gradient": "from-blue-500 to-indigo-600"
+  },
+  {
+    "id": "laptop",
+    "name": "Laptops & Computers",
+    "icon": "💻",
+    "description": "Computers for school, work, and play",
+    "gradient": "from-emerald-500 to-teal-600"
+  },
+  {
+    "id": "electronics",
+    "name": "Electronics",
+    "icon": "📺",
+    "description": "TVs, cameras, audio, and more",
+    "gradient": "from-violet-500 to-purple-600"
+  },
+  {
+    "id": "beauty",
+    "name": "Beauty & Personal Care",
+    "icon": "🧴",
+    "description": "Skincare, hair care, and personal essentials",
+    "gradient": "from-pink-500 to-rose-600"
+  },
+  {
+    "id": "sports",
+    "name": "Sports & Outdoors",
+    "icon": "⚽",
+    "description": "Fitness gear and outdoor adventures",
+    "gradient": "from-cyan-500 to-sky-600"
+  },
+  {
+    "id": "grocery",
+    "name": "Groceries & Food",
+    "icon": "🛒",
+    "description": "Pantry staples and everyday groceries",
+    "gradient": "from-lime-500 to-green-600"
+  },
+  {
+    "id": "kids",
+    "name": "Kids & Toys",
+    "icon": "🧸",
+    "description": "Toys, games, and family essentials",
+    "gradient": "from-amber-500 to-yellow-600"
+  },
+  {
+    "id": "tools",
+    "name": "Tools & Garden",
+    "icon": "🛠️",
+    "description": "DIY, repairs, and garden supplies",
+    "gradient": "from-orange-500 to-red-600"
+  },
+  {
+    "id": "tablet",
+    "name": "Tablets",
+    "icon": "📲",
+    "description": "Portable screens for learning and entertainment",
+    "gradient": "from-amber-500 to-orange-600"
+  },
+  {
+    "id": "smartwatch",
+    "name": "Watches & Wearables",
+    "icon": "⌚",
+    "description": "Smartwatches and wearable accessories",
+    "gradient": "from-rose-500 to-pink-600"
+  },
+  {
+    "id": "accessory",
+    "name": "Accessories",
+    "icon": "🎧",
+    "description": "Useful extras for your devices",
+    "gradient": "from-cyan-500 to-sky-600"
+  },
+  {
+    "id": "other",
+    "name": "More Finds",
+    "icon": "✨",
+    "description": "Explore everything else the marketplace has to offer",
+    "gradient": "from-indigo-500 to-purple-600"
+  }
+]

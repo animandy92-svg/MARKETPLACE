@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, LogOut, LayoutDashboard, Heart } from 'lucide-react';
+import { ShoppingCart, User, LogOut, LayoutDashboard, Heart, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -16,17 +16,16 @@ export function Header() {
 
   const navLinks = [
     { to: '/', label: 'Home' },
-    { to: '/products?category=phone', label: 'Phones' },
-    { to: '/products?category=laptop', label: 'Laptops' },
-    { to: '/products?category=tablet', label: 'Tablets' },
-    { to: '/products?category=smartwatch', label: 'Smartwatches' },
-    { to: '/products?category=accessory', label: 'Accessories' },
+    { to: '/products', label: 'Shop All' },
+    { to: '/products?category=fashion', label: 'Fashion' },
+    { to: '/products?category=appliance', label: 'Appliances' },
+    { to: '/products?category=school', label: 'School & Office' },
     { to: '/sell', label: 'Sell' },
   ];
 
   const isActive = (path: string) => {
-    const base = path.split('?')[0];
-    return location.pathname === base;
+    const [base, search = ''] = path.split('?');
+    return location.pathname === base && location.search === (search ? `?${search}` : '');
   };
 
   const handleSignOut = async () => {
@@ -41,7 +40,7 @@ export function Header() {
           <img src={logoSvg} alt="Jack of all Trades" className="h-10 w-auto" />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.to}
@@ -65,7 +64,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -124,8 +123,17 @@ export function Header() {
               </AnimatePresence>
             </Button>
           </Link>
+          <Link to="/admin" aria-label="Admin panel" title="Admin panel">
+            <Button variant="ghost" size="sm" className="text-primary gap-1 px-2">
+              <ShieldCheck className="h-4 w-4" /> <span className="text-xs">Admin</span>
+            </Button>
+          </Link>
         </div>
       </div>
+      <nav aria-label="Mobile navigation" className="lg:hidden flex gap-1 overflow-x-auto px-4 pb-2">
+        {navLinks.map((link) => <Link key={link.to} to={link.to}
+          className={`whitespace-nowrap px-3 py-2 text-sm rounded-lg ${isActive(link.to) ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}>{link.label}</Link>)}
+      </nav>
       <div className="h-0.5 w-full" style={{ background: 'var(--gradient-primary)' }} />
     </header>
   );

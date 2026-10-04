@@ -1,15 +1,16 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import * as functions from "firebase-functions/v1";
+import { db } from "./firebase";
+import { FieldValue } from "firebase-admin/firestore";
 import corsMiddleware from "cors";
 import { verifyAuth } from "./middleware";
 
 const cors = corsMiddleware({ origin: true });
-const db = admin.firestore();
+
 
 export const getWishlist = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "GET") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
         const userId = (req as any).user.uid;
         const snapshot = await db
@@ -36,7 +37,7 @@ export const getWishlist = functions.https.onRequest(async (req, res) => {
 export const addToWishlist = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
         const userId = (req as any).user.uid;
         const productId = req.query.productId as string;
@@ -46,7 +47,7 @@ export const addToWishlist = functions.https.onRequest(async (req, res) => {
 
         await db.collection("users").doc(userId).collection("wishlist").doc(productId).set({
           product_id: productId,
-          created_at: admin.firestore.FieldValue.serverTimestamp(),
+          created_at: FieldValue.serverTimestamp(),
         });
 
         res.json({ success: true });
@@ -61,7 +62,7 @@ export const addToWishlist = functions.https.onRequest(async (req, res) => {
 export const removeFromWishlist = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
     if (req.method !== "DELETE") { res.status(405).json({ error: "Method not allowed" }); return; }
-    verifyAuth(req, res, async () => {
+    await verifyAuth(req, res, async () => {
       try {
         const userId = (req as any).user.uid;
         const productId = req.query.productId as string;

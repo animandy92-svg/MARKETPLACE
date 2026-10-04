@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -17,6 +17,9 @@ export function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const requestedPath = location.state?.from;
+  const destination = typeof requestedPath === 'string' && requestedPath.startsWith('/') && !requestedPath.startsWith('//') ? requestedPath : '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +27,7 @@ export function SignInPage() {
     try {
       await signIn(email, password);
       toast.success('Signed in successfully!', { description: 'Welcome back to Jack of all Trades.' });
-      navigate('/');
+      navigate(destination);
     } catch (err: any) {
       const message = err.code === 'auth/invalid-credential' ? 'Invalid email or password' : 'Sign in failed. Please try again.';
       toast.error('Sign in failed', { description: message });
@@ -37,7 +40,7 @@ export function SignInPage() {
     try {
       await signInWithGoogle();
       toast.success('Signed in with Google!', { description: 'Welcome to Jack of all Trades.' });
-      navigate('/');
+      navigate(destination);
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
         toast.error('Google sign in failed', { description: 'Please try again.' });

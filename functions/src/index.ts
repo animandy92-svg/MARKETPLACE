@@ -1,14 +1,8 @@
-import * as functions from "firebase-functions";
+import "./firebase";
+import * as functions from "firebase-functions/v1";
 import corsMiddleware from "cors";
 
 const cors = corsMiddleware({ origin: true });
-
-export { syncFirebaseUser } from "./auth";
-export { getProducts, getProduct } from "./products";
-export { getCart, addToCart, updateCart, removeFromCart, clearCart } from "./cart";
-export { getOrders, createOrder } from "./orders";
-export { getWishlist, addToWishlist, removeFromWishlist } from "./wishlist";
-export { initializePayment, verifyPayment } from "./payments";
 
 export const api = functions.https.onRequest(async (req, res) => {
   cors(req, res, async () => {
@@ -83,7 +77,7 @@ export const api = functions.https.onRequest(async (req, res) => {
     }
 
     if (path === "/health" || path === "/") {
-      res.json({ status: "ok" });
+      res.json({ status: "ok", paymentsEnabled: Boolean(process.env.PAYSTACK_SECRET_KEY) });
       return;
     }
 
