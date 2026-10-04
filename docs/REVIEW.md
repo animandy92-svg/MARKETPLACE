@@ -32,7 +32,9 @@ The Flutter app includes catalog search/sort, product details, shared account lo
 - Website production build completed.
 - Three checkout/payment unit tests passed, including forged totals and invalid payment ownership.
 - Six Firestore emulator authorization tests passed, including admin listing lifecycle, buyer denial, private account data, and role escalation prevention.
+- An Auth/Firestore/Functions emulator integration test passed: forged identity was ignored, client totals were recalculated, unpaid orders stayed pending, and another user could not see those orders.
 - Flutter analysis completed with no issues and five model/widget tests passed.
+- The Android debug APK was built locally; Android package metadata and its v2 signature were verified. GitHub's independent Android build also passed.
 - Root and Functions dependency audits reported zero known vulnerabilities after dependency updates.
 - Shared web/mobile category synchronization check passed.
 - Browser checks confirmed the general storefront and the protected admin sign-in entry at phone width.

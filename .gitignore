@@ -16,5 +16,6 @@ functions/.runtimeconfig.json
 **/key.properties
 **/*.jks
 **/*.keystore
+**/.kotlin/
 artifacts/
 public/downloads/*.apk

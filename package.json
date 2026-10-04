@@ -12,7 +12,8 @@
     "deploy": "npm run build && firebase deploy",
     "seed": "node scripts/migrate-to-firestore.cjs",
     "test": "npm --prefix functions test",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-marketplace \"node --test tests/firestore.rules.test.mjs\""
+    "test:rules": "firebase emulators:exec --only firestore --project demo-marketplace \"node --test tests/firestore.rules.test.mjs\"",
+    "test:api": "npm run build:functions && firebase emulators:exec --only auth,firestore,functions --project demo-marketplace \"node --test tests/api.integration.test.mjs\""
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

@@ -81,6 +81,8 @@ flutter build apk --debug
 
 The debug APK is generated at `mobile/build/app/outputs/flutter-apk/app-debug.apk`. It is intended for testing and is not a Play Store release. Release builds need your own Android signing key; the generated development signing configuration must be replaced before store submission.
 
+The Android app targets Android 7.0 (API 24) and later. GitHub Actions provides a downloadable `marketplace-debug-apk` artifact after a successful Android build.
+
 iOS source is included. Build on macOS with Xcode and an Apple development team:
 
 ```sh
@@ -128,6 +130,7 @@ Seller applications are saved for review; submitting an application does not cre
 ```sh
 npm test
 npm run test:rules
+npm run test:api
 npm audit
 npm --prefix functions audit
 node scripts/sync-mobile-categories.mjs --check

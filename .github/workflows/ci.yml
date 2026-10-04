@@ -24,6 +24,7 @@ jobs:
       - run: npm test
       - run: npm install --global firebase-tools
       - run: npm run test:rules
+      - run: npm run test:api
       - run: node scripts/sync-mobile-categories.mjs --check
       - run: npm run build
         env:
