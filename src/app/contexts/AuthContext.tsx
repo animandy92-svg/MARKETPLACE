@@ -106,7 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    await signInWithPopup(auth, googleProvider);
+    const credential = await signInWithPopup(auth, googleProvider);
+    await syncUserWithFirestore(credential.user);
   };
 
   const signOut = async () => {

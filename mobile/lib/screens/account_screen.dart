@@ -212,7 +212,7 @@ class _AccountScreenState extends State<AccountScreen> {
               tooltip: 'Sign out',
               onPressed: () async {
                 try {
-                  await widget.service.auth.signOut();
+                  await widget.service.signOut();
                 } catch (_) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

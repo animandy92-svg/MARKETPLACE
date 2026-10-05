@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../services/marketplace_service.dart';
 
@@ -76,6 +77,37 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      await widget.service.signInWithGoogle();
+      if (mounted) Navigator.pop(context, true);
+    } on GoogleSignInException catch (e) {
+      if (mounted && e.code != GoogleSignInExceptionCode.canceled) {
+        setState(() => error = 'Google sign-in failed. Please try again.');
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(
+          () => error = e.code == 'account-exists-with-different-credential'
+              ? 'Sign in with your existing account method for this email.'
+              : 'Google sign-in failed. Please try again.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => error = 'Could not connect to Google. Please try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(register ? 'Create account' : 'Welcome back')),
@@ -89,11 +121,7 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.storefront,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                Image.asset('assets/brand-icon.png', height: 80),
                 const SizedBox(height: 24),
                 Text(
                   register
@@ -159,6 +187,27 @@ class _AuthScreenState extends State<AuthScreen> {
                         ? 'Create account'
                         : 'Sign in',
                   ),
+                ),
+                const SizedBox(height: 20),
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('OR'),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  onPressed: busy ? null : signInWithGoogle,
+                  icon: Image.asset(
+                    'assets/google-mark.png',
+                    width: 20,
+                    height: 20,
+                  ),
+                  label: const Text('Continue with Google'),
                 ),
                 TextButton(
                   onPressed: busy

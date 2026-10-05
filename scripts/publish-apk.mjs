@@ -6,7 +6,11 @@ import { createHash } from 'node:crypto';
 
 // Run only when publishing an Android update has been authorized.
 // Reuse Git's credential manager; never print or write its credential.
-const repo = 'animandy92-svg/MARKETPLACE', tag = 'v1.1.0';
+const repo = 'animandy92-svg/MARKETPLACE';
+const pubspec = await readFile(new URL('../mobile/pubspec.yaml', import.meta.url), 'utf8');
+const version = pubspec.match(/^version: (\d+\.\d+\.\d+)\+\d+$/m)?.[1];
+if (!version) throw new Error('A semantic app version and build number are required');
+const tag = `v${version}`;
 const mode = process.argv[2];
 if (!['--inspect', '--publish'].includes(mode)) throw new Error('Use --inspect or --publish');
 let credentials;
@@ -32,12 +36,12 @@ let release = await api(`/releases/tags/${tag}`);
 if (mode === '--inspect') {
   console.log(JSON.stringify({ repository: info.data.html_url, public: true, release: release.status === 200 ? release.data.html_url : null }));
 } else {
-  const notes = await readFile(new URL('../artifacts/RELEASE-NOTES.md', import.meta.url), 'utf8');
+  const notes = await readFile(new URL(`../docs/releases/${version}.md`, import.meta.url), 'utf8');
   if (release.status === 404) release = await api('/releases', { method: 'POST', body: JSON.stringify({
     tag_name: tag, target_commitish: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-    name: 'Ghana pilot · Android 1.1.0 (testing)', body: notes, draft: true, prerelease: true,
+    name: `Jack of All Trades · Android ${version} (testing)`, body: notes, draft: true, prerelease: true,
   }) });
-  for (const name of ['jack-of-all-trades-1.1.0.apk', 'jack-of-all-trades-1.1.0.sha256']) {
+  for (const name of [`jack-of-all-trades-${version}.apk`, `jack-of-all-trades-${version}.sha256`]) {
     const filename = path.resolve('artifacts', name), { size } = await stat(filename);
     const existing = release.data.assets?.find(asset => asset.name === name);
     if (existing) {

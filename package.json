@@ -12,7 +12,9 @@
     "build:functions": "cd functions && npm run build",
     "deploy": "npm run build && firebase deploy",
     "seed": "node scripts/migrate-to-firestore.cjs",
-    "test": "npm --prefix functions test",
+    "test": "npm --prefix functions test && npm run test:auth",
+    "test:auth": "node --experimental-strip-types --test tests/google-auth.test.mjs",
+    "icons:mobile": "node scripts/generate-app-icons.mjs",
     "test:rules": "firebase emulators:exec --only firestore --project demo-marketplace \"node --test tests/firestore.rules.test.mjs\"",
     "test:api": "npm run build:functions && node scripts/test-api.mjs"
   },
@@ -87,6 +89,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",

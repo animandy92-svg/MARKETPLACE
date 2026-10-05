@@ -2,6 +2,21 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>GIDClientID</key>
+    <string>370501488724-5qdof2e7t8pc0h927h0kd61jtn5b0ght.apps.googleusercontent.com</string>
+    <key>GIDServerClientID</key>
+    <string>370501488724-pvps4gsdo2t8ske80rcdaogmjr2ictlo.apps.googleusercontent.com</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.370501488724-5qdof2e7t8pc0h927h0kd61jtn5b0ght</string>
+            </array>
+        </dict>
+    </array>
     <key>NSCameraUsageDescription</key>
     <string>Take photos of items you want to list on the marketplace.</string>
     <key>NSPhotoLibraryUsageDescription</key>

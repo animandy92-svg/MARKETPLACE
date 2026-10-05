@@ -82,7 +82,17 @@ flutter build apk --debug
 
 The debug APK is generated at `mobile/build/app/outputs/flutter-apk/app-debug.apk`. It is intended for testing and is not a Play Store release. Release builds need your own Android signing key; the generated development signing configuration must be replaced before store submission.
 
-Version 1.1.0 is distributed through the [GitHub testing release](https://github.com/animandy92-svg/MARKETPLACE/releases/tag/v1.1.0). Firebase Spark blocks hosting APK executables; the website links to GitHub instead. The APK signing certificate matches the previous testing build.
+Version 1.2.0 is distributed through the [GitHub testing release](https://github.com/animandy92-svg/MARKETPLACE/releases/tag/v1.2.0). Firebase Spark blocks hosting APK executables; the website links to GitHub instead. The APK signing certificate matches the previous testing build.
+
+### Google sign-in and app icons
+
+The website and native apps offer **Continue with Google** on both sign-in and registration screens. Google authentication uses the same Firebase user/profile and custom admin claims as email authentication. New accounts receive buyer profiles; existing profiles, orders, and access are preserved.
+
+Google is enabled for the production Firebase project. The distributed Android testing APK's SHA-1 and SHA-256 certificates are registered for `com.jackofalltrades.marketplace`. Builds signed with a different key (including CI builds and future Play Store builds) need that certificate registered in Firebase Project settings before Google sign-in will work. Do not replace the existing signing key when publishing an update for installed testers.
+
+iOS includes the Google client ID and callback URL scheme in `mobile/ios/Runner/Info.plist`. Compile and test native iOS sign-in on macOS with Xcode before distributing an iOS build.
+
+Android legacy/adaptive icons and all iOS icon sizes use the shopping bags from `public/logo.svg`. Regenerate the checked-in icons and sign-in assets with `npm run icons:mobile` after a logo update. The Android version and build number are maintained in `mobile/pubspec.yaml`; `scripts/publish-apk.mjs` derives the release tag from that version.
 
 The Android app targets Android 7.0 (API 24) and later. GitHub Actions provides a downloadable `marketplace-debug-apk` artifact after a successful Android build.
 

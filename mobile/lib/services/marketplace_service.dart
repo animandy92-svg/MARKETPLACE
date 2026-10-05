@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/product.dart';
@@ -17,6 +18,11 @@ class MarketplaceService {
       db = db ?? FirebaseFirestore.instance;
   final FirebaseAuth auth;
   final FirebaseFirestore db;
+  static Future<void>? _googleInitialization;
+  static Future<void> initializeGoogleSignIn() =>
+      _googleInitialization ??= GoogleSignIn.instance.initialize(
+        serverClientId: '370501488724-pvps4gsdo2t8ske80rcdaogmjr2ictlo.apps.googleusercontent.com',
+      );
   static const apiUrl = String.fromEnvironment(
     'API_URL',
     defaultValue: 'https://jack-of-all-trades-marketplace.web.app/api',
@@ -83,6 +89,30 @@ class MarketplaceService {
     );
     await result.user!.updateDisplayName(name.trim());
     await syncProfile(result.user!);
+  }
+
+  Future<void> signInWithGoogle() async {
+    await initializeGoogleSignIn();
+    final account = await GoogleSignIn.instance.authenticate();
+    final idToken = account.authentication.idToken;
+    if (idToken == null) {
+      throw FirebaseAuthException(
+        code: 'invalid-credential',
+        message: 'Google could not verify your account. Please try again.',
+      );
+    }
+    final result = await auth.signInWithCredential(
+      GoogleAuthProvider.credential(idToken: idToken),
+    );
+    await syncProfile(result.user!);
+  }
+
+  Future<void> signOut() async {
+    await auth.signOut();
+    if (_googleInitialization != null) {
+      await _googleInitialization;
+      await GoogleSignIn.instance.signOut();
+    }
   }
 
   Future<void> syncProfile(User user) async {

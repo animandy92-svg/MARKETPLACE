@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "370501488724-aadcolibkoodg9kl1je65ss59tmrblbo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jackofalltrades.marketplace",
+            "certificate_hash": "1ba1293e6cc54276d1cb64c45a3c6d6dbdd6ef07"
+          }
+        },
+        {
           "client_id": "370501488724-pvps4gsdo2t8ske80rcdaogmjr2ictlo.apps.googleusercontent.com",
           "client_type": 3
         }

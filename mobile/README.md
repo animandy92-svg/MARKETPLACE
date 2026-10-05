@@ -23,6 +23,10 @@ flutter build ipa
 
 iOS signing requires your Apple team. Firebase options are included for the registered bundle/application ID `com.jackofalltrades.marketplace`.
 
+Sign in or create an account with **Continue with Google**. Android uses the Firebase web OAuth client as its server client ID, with the testing APK's signing certificate registered in Firebase. Register every other signing certificate (including Google Play app signing) before distributing a build using it. iOS client and callback configuration lives in `ios/Runner/Info.plist`.
+
+The app icon and sign-in logo use the project's shopping bag mark. Regenerate all Android and iOS icon sizes from the website logo by running `npm run icons:mobile` from the repository root.
+
 The production API defaults to the Firebase Hosting `/api` endpoint. Override it with `--dart-define=API_URL=https://your-api.example/api` if needed. For local Firebase emulators, pass `--dart-define=USE_EMULATORS=true --dart-define=EMULATOR_HOST=10.0.2.2` and the local Functions API URL described in the [project README](../README.md).
 
 Admins sign in with a Firebase account carrying the `admin: true` custom claim. The panel supports adding/editing listings, marking sold, and removing listings. Firebase rules enforce this access on both platforms.

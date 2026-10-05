@@ -12,6 +12,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 export const db = getFirestore(app);
 if (import.meta.env.VITE_USE_EMULATORS === 'true') {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099');
