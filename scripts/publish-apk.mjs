@@ -74,14 +74,15 @@ if (mode === '--inspect') {
       try {
         const curlBinary = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'curl.exe');
         const uploaded = execFileSync(curlBinary, ['--config', '-', '--fail-with-body', '--silent', '--show-error',
-          '--request', 'POST', '--data-binary', `@${filename}`, '--ipv4', '--connect-timeout', '60', '--max-time', '600',
-          '--retry', '2', '--retry-delay', '2'],
+          '--request', 'POST', '--data-binary', `@${filename}`, '--header', 'Expect:', '--http1.1',
+          '--ipv4', '--connect-timeout', '60', '--max-time', '600', '--write-out', '\nUPLOAD_METRICS:%{http_code}|%{size_upload}|%{speed_upload}|%{time_total}'],
           { input: curlConfig, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 1024 * 1024 });
-        const asset = JSON.parse(uploaded);
+        const asset = JSON.parse(uploaded.split('\nUPLOAD_METRICS:')[0]);
         if (asset.size !== size || asset.state !== 'uploaded' || asset.digest !== digest) throw new Error('GitHub did not confirm the complete asset');
       } catch (error) {
         const detail = String(error.stderr || error.message).trim().slice(0, 400);
-        throw new Error(`Native upload of ${name} failed${error.status ? ` (curl exit ${error.status})` : ''}: ${detail}. The unpublished release can be resumed`);
+        const metrics = String(error.stdout || '').match(/UPLOAD_METRICS:([0-9.|]+)/)?.[1];
+        throw new Error(`Native upload of ${name} failed${error.status ? ` (curl exit ${error.status})` : ''}: ${detail}${metrics ? ` (HTTP|bytes|bytes per second|seconds: ${metrics})` : ''}. The unpublished release can be resumed`);
       }
     } else {
       const response = await fetch(url, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/octet-stream', 'Content-Length': String(size) },
