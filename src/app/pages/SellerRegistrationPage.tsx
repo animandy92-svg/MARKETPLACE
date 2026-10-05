@@ -32,10 +32,10 @@ export function SellerRegistrationPage() {
     <CheckCircle2 className="h-16 w-16 text-primary mx-auto" />
     <h1 className="text-3xl font-bold">Application received</h1>
     <p className="text-muted-foreground">Your seller application has been saved for review. Your account will be enabled for selling after approval.</p>
-    <Link to="/products"><Button>Explore the Marketplace</Button></Link>
+    <Link to="/seller"><Button>Open seller workspace</Button></Link>
   </div>;
   return <div>
-    <div className="bg-gradient-to-r from-primary to-purple-600 text-white px-4 py-12 text-center space-y-4">
+    <div className="bg-gradient-to-r from-primary to-emerald-800 text-white px-4 py-12 text-center space-y-4">
       <Store className="h-12 w-12 mx-auto" /><h1 className="text-4xl font-bold">Sell on Jack of All Trades</h1>
       <p className="text-white/85 max-w-2xl mx-auto">Dresses, calculators, appliances, home goods, phones, or your next great find. Tell us what you would like to sell.</p>
     </div>

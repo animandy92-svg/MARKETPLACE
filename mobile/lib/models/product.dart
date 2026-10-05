@@ -10,12 +10,19 @@ class Product {
     required this.rating,
     required this.specs,
     this.active = true,
+    this.reviewCount = 0,
+    this.condition = 'new',
+    this.verified = false,
+    this.reserved = 0,
   });
   final String id, name, category, description, image;
   final double price, rating;
   final int stock;
   final List<String> specs;
   final bool active;
+  final bool verified;
+  final String condition;
+  final int reviewCount, reserved;
 
   factory Product.fromMap(String id, Map<String, dynamic> data) => Product(
     id: id,
@@ -26,10 +33,17 @@ class Product {
     image: data['image'] as String? ?? '',
     stock: (data['stock'] as num? ?? 0).toInt(),
     rating: (data['rating'] as num? ?? 0).toDouble(),
+    reviewCount: (data['review_count'] as num? ?? 0).toInt(),
+    reserved: (data['reserved'] as num? ?? 0).toInt(),
+    condition: data['condition'] as String? ?? 'new',
+    verified: data['verified'] == true,
     specs: (data['specs'] as List? ?? [])
         .map((value) => value.toString())
         .toList(),
-    active: data['active'] != false && data['status'] != 'sold',
+    active:
+        data['active'] != false &&
+        data['status'] != 'sold' &&
+        data['status'] != 'draft',
   );
 }
 
@@ -67,7 +81,9 @@ List<Product> filterProducts(
     (a, b) => switch (sort) {
       'price-low' => a.price.compareTo(b.price),
       'price-high' => b.price.compareTo(a.price),
-      'rating' => b.rating.compareTo(a.rating),
+      'rating' => (b.reviewCount > 0 ? b.rating : 0).compareTo(
+        a.reviewCount > 0 ? a.rating : 0,
+      ),
       _ => a.name.compareTo(b.name),
     },
   );

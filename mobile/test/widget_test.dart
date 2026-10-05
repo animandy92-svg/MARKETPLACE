@@ -19,6 +19,7 @@ Product item(
   stock: stock,
   rating: 4,
   specs: [],
+  verified: true,
 );
 
 void main() {
@@ -102,4 +103,37 @@ void main() {
     expect(added, isFalse);
     expect(find.textContaining('Sold out'), findsOneWidget);
   });
+  testWidgets(
+    'unchecked legacy stock cannot be bought or show an invented rating',
+    (tester) async {
+      var added = false;
+      final unchecked = Product.fromMap('legacy-phone', {
+        'name': 'Legacy phone',
+        'price': 500,
+        'stock': 3,
+        'rating': 5,
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 220,
+              height: 310,
+              child: ProductTile(
+                product: unchecked,
+                onOpen: () {},
+                onAdd: () => added = true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip('Add to cart'));
+      expect(added, isFalse);
+      expect(find.text('Awaiting stock check'), findsOneWidget);
+      expect(find.text('No reviews yet'), findsOneWidget);
+      expect(find.textContaining('★'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

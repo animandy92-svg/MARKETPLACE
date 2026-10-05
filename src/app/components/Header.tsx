@@ -17,10 +17,11 @@ export function Header() {
   const navLinks = [
     { to: '/', label: 'Home' },
     { to: '/products', label: 'Shop All' },
-    { to: '/products?category=fashion', label: 'Fashion' },
-    { to: '/products?category=appliance', label: 'Appliances' },
+    { to: '/products?category=phone', label: 'Phones' },
+    { to: '/products?category=laptop', label: 'Laptops' },
     { to: '/products?category=school', label: 'School & Office' },
     { to: '/sell', label: 'Sell' },
+    { to: '/help', label: 'Help' },
   ];
 
   const isActive = (path: string) => {
@@ -100,7 +101,7 @@ export function Header() {
               </Button>
             </Link>
           )}
-          <Link to="/cart">
+          <Link to="/cart" aria-label={'Shopping cart, ' + itemCount + ' items'}>
             <Button variant="outline" size="sm" className="relative border-primary/20 hover:border-primary/40 hover:bg-primary/5">
               <ShoppingCart className="h-4 w-4" />
               <AnimatePresence mode="wait">

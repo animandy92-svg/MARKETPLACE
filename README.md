@@ -6,12 +6,13 @@ An everyday marketplace for fashion, electrical appliances, school and office su
 - Repository: https://github.com/animandy92-svg/MARKETPLACE
 - Android/iOS source: [mobile](mobile/)
 - Review notes: [docs/REVIEW.md](docs/REVIEW.md)
+- Pilot launch and payment acceptance: [docs/PILOT.md](docs/PILOT.md)
 
 ## Admin panel
 
 Tap **Admin** in the upper-right corner of the website or mobile app, then sign in with an approved account. The first approved admin is **animandy92@gmail.com**. If you were signed in before the role was granted, sign out and back in, or use **Refresh access**.
 
-Admins can publish an item with its name, category, price in Ghana cedis, stock, description, photo URL, and item details. Edits appear in the shared catalog. **Sold** hides the item from storefronts and sets stock to zero. **Remove** permanently deletes the listing after confirmation. Existing order records retain their item snapshots.
+Admins can upload an actual photo, enter price in Ghana cedis, available stock, condition, description, supplier cost, and item details, then confirm their catalog checks. Legacy listings need those checks before they can be purchased. **Hide** removes an item from storefronts; **Remove** deletes it after confirmation. Reserved items cannot be edited or deleted. Existing orders retain their snapshots. Supplier approval, listing review, delivery/return terms, support, fulfillment, refunds, and pilot metrics are in separate Admin tabs. Orders/refunds/metrics require the deployed API.
 
 An admin role is a Firebase Authentication custom claim (`admin: true`); editing a profile's `role` field does not grant access. To approve another existing account from a trusted operator machine with Google Application Default Credentials:
 
@@ -81,6 +82,8 @@ flutter build apk --debug
 
 The debug APK is generated at `mobile/build/app/outputs/flutter-apk/app-debug.apk`. It is intended for testing and is not a Play Store release. Release builds need your own Android signing key; the generated development signing configuration must be replaced before store submission.
 
+Version 1.1.0 is distributed through the [GitHub testing release](https://github.com/animandy92-svg/MARKETPLACE/releases/tag/v1.1.0). Firebase Spark blocks hosting APK executables; the website links to GitHub instead. The APK signing certificate matches the previous testing build.
+
 The Android app targets Android 7.0 (API 24) and later. GitHub Actions provides a downloadable `marketplace-debug-apk` artifact after a successful Android build.
 
 iOS source is included. Build on macOS with Xcode and an Apple development team:
@@ -115,15 +118,15 @@ The optional legacy SQLite migration requires an existing local SQLite catalog a
 
 ## Orders and payments
 
-The API validates quantities, stock, and shipping addresses, and calculates product prices and the 10% tax from Firestore. Client-submitted prices and totals are ignored.
+The API validates quantities, checked stock, delivery areas, addresses, and contact phone numbers. Prices, configured tax, and delivery charges come from Firestore; client-submitted prices and totals are ignored. Inventory is reserved atomically for one checkout and reconciled by a scheduled function.
 
-Without Paystack configured, checkout submits an **unpaid pending order request**. With Paystack configured, the server initializes a hosted payment and verifies the reference, amount, currency, user, and order before setting `paid`. In the mobile app, return from the browser and tap **Verify payment**, or verify a pending payment from the account's order history.
+Checkout stays closed until payments and specific delivery areas are configured. The API initializes hosted Paystack card/mobile money checkout and verifies the reference, amount, currency, user, and order. Signed webhooks and manual verification use the same idempotent settlement. In the APK, return from the browser and tap **Check payment**, or verify from account history. A late payment after stock release needs support/refund handling.
 
-For optional payments, create an ignored `functions/.env.jack-of-all-trades-marketplace` using `functions/.env.example`, set `PAYSTACK_SECRET_KEY` on the server, and redeploy. Never put the secret in a `VITE_` variable or in the mobile app. Restrict access to the deployment environment. The default storefront return URL can be changed with `STOREFRONT_URL`.
+Set `PAYSTACK_SECRET_KEY` using `firebase functions:secrets:set PAYSTACK_SECRET_KEY`, then deploy Functions. Both the API and scheduler bind that secret. Configure the Paystack webhook at `/api/payments/webhook`. Never put the secret in a dotenv file, `VITE_` variable, Git, or the APK. `STOREFRONT_URL` is nonsecret server configuration.
 
-Inventory reservation, automatic payment webhooks, fulfillment, refunds, and tax compliance for a live business need a separate production operations pass. Admins can currently manage sold stock manually.
+Admins can advance paid orders, record delivery notes/costs, resolve help requests, initiate full refunds, reconcile provider states, and explicitly restock physically checked returns. Refunds are completed only after provider confirmation. The report measures deliveries, cancellations, repeat purchases, acquisition cost, and contribution using actual recorded costs. See the pilot guide for limits and live acceptance steps.
 
-Seller applications are saved for review; submitting an application does not create an approved seller account or collect a fee.
+Seller applications are saved for review. Approved suppliers get web and native Android workspaces with camera/gallery photo uploads, private listing submissions, inventory updates, and paid-order preparation. Every listing/update is reviewed before publication. No automatic approval or application fee is represented.
 
 ## Verification and deployment
 

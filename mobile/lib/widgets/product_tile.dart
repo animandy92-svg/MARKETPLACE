@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'dart:convert';
+
 import '../models/product.dart';
 
 class ProductImage extends StatelessWidget {
@@ -8,6 +10,14 @@ class ProductImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => product.image.isEmpty
       ? const Center(child: Icon(Icons.devices, size: 48))
+      : product.image.startsWith('data:image/jpeg;base64,')
+      ? Image.memory(
+          base64Decode(product.image.split(',').last),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          errorBuilder: (_, error, stack) =>
+              const Center(child: Icon(Icons.devices, size: 48)),
+        )
       : Image.network(
           product.image,
           fit: BoxFit.cover,
@@ -56,7 +66,18 @@ class ProductTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '★ ${product.rating.toStringAsFixed(1)} · ${product.stock > 0 ? '${product.stock} in stock' : 'Sold out'}',
+                  product.reviewCount > 0
+                      ? '★ ${product.rating.toStringAsFixed(1)} · ${product.reviewCount} verified reviews'
+                      : 'No reviews yet',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  product.verified
+                      ? (product.stock > 0
+                            ? '${product.stock} in stock'
+                            : 'Sold out')
+                      : 'Awaiting stock check',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 6),
@@ -72,7 +93,9 @@ class ProductTile extends StatelessWidget {
                       ),
                     ),
                     IconButton.filledTonal(
-                      onPressed: product.stock > 0 ? onAdd : null,
+                      onPressed: product.verified && product.stock > 0
+                          ? onAdd
+                          : null,
                       tooltip: 'Add to cart',
                       icon: const Icon(Icons.add_shopping_cart, size: 19),
                     ),

@@ -18,11 +18,12 @@ export function validateItems(input: unknown): { productId: string; quantity: nu
   });
 }
 
-export function quoteItems(items: ReturnType<typeof validateItems>, products: Record<string, any>) {
+export function quoteItems(items: ReturnType<typeof validateItems>, products: Record<string, any>, options = { deliveryMinor: 0, taxBasisPoints: 0 }) {
   let subtotalMinor = 0;
   const lines = items.map(({ productId, quantity }) => {
     const product = products[productId];
-    if (!product || product.status === 'sold' || product.active === false || !Number.isFinite(product.price) || product.price <= 0) {
+    if (product && product.verified !== true) throw new CheckoutError('This item needs a stock and condition check before it can be ordered');
+    if (!product || product.status === 'sold' || product.status === 'draft' || product.active === false || !Number.isFinite(product.price) || product.price <= 0) {
       throw new CheckoutError("A product is no longer available");
     }
     if (!Number.isInteger(product.stock) || product.stock < quantity) {
@@ -31,17 +32,21 @@ export function quoteItems(items: ReturnType<typeof validateItems>, products: Re
     const priceMinor = Math.round(product.price * 100);
     subtotalMinor += priceMinor * quantity;
     return { product_id: productId, quantity, price: priceMinor / 100,
-      name: String(product.name || ""), image: String(product.image || "") };
+      name: String(product.name || ""), image: /^https:\/\//.test(product.image || '') ? product.image : '', seller_id: product.seller_id || null };
   });
-  const taxMinor = Math.round(subtotalMinor * 0.1);
+  const taxMinor = Math.round(subtotalMinor * options.taxBasisPoints / 10000);
+  const amountMinor = subtotalMinor + taxMinor + options.deliveryMinor;
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < 1 || amountMinor > 100000000) throw new CheckoutError("Order total is outside supported limits");
   return { items: lines, subtotal: subtotalMinor / 100, tax: taxMinor / 100,
-    total: (subtotalMinor + taxMinor) / 100, amountMinor: subtotalMinor + taxMinor };
+    delivery: options.deliveryMinor / 100, total: amountMinor / 100, amountMinor };
 }
 
 export function assertPayment(payment: any, intent: any, uid: string) {
+  let metadata = payment?.metadata;
+  if (typeof metadata === 'string') { try { metadata = JSON.parse(metadata); } catch { metadata = null; } }
   if (intent.user_id !== uid || payment?.status !== "success" || payment.currency !== "GHS"
     || payment.amount !== intent.amount_minor || payment.reference !== intent.reference
-    || payment.metadata?.user_id !== uid || payment.metadata?.order_id !== intent.order_id) {
+    || metadata?.user_id !== uid || metadata?.order_id !== intent.order_id) {
     throw new CheckoutError("Payment could not be verified for this order", 409);
   }
 }

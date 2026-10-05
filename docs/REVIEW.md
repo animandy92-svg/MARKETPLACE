@@ -1,50 +1,31 @@
-# Marketplace review
+# Marketplace review — October 5, 2026
 
-Reviewed the latest `main` branch and pulled with `git pull --ff-only` before changing the project.
+## Implemented
 
-## Findings addressed
-
-| Finding | Result |
-| --- | --- |
-| Anyone could write to the public catalog | Firestore enforces an admin custom claim for adding, editing, marking sold, and deleting listings. Both admin interfaces use these same rules. |
-| Profile roles could be edited by clients | New profiles are buyers; profile edits are limited to name/phone. Admin access uses signed Firebase claims. |
-| Checkout trusted client totals and could record an unverified payment | The authenticated API calculates prices and stock from Firestore. Unpaid requests remain pending. Paystack verification checks owner, reference, currency, amount, and metadata before marking paid. |
-| User synchronization trusted submitted identity | API identity now comes from a verified Firebase ID token. |
-| Home and detail pages used static product data | Catalog and detail pages now read live Firestore listings and hide sold/hidden items. |
-| Catalog browsing relied on missing composite indexes | Category/search/sort filters work on the shared catalog without additional composite indexes. |
-| Wishlists stored IDs but displayed them as full products | Saved items now resolve their live product records. |
-| Cart schema and account switching could mix user data | Shared carts store quantities under each account; the website joins product data and handles stale snapshots. Guest storage is separate. |
-| Seller registration reported success without persistence | Applications are saved as pending; no automatic approval or fee is represented. |
-| Missing PWA assets and broken migration entry point | Manifest assets are present; the legacy migration uses a trusted Admin SDK and skips nonempty catalogs. |
-| Build outputs, dependencies, and database runtime files were tracked | Generated and local files are excluded from version control, retaining dependency locks and source. |
-| Vite watched temporary Flutter build files on Windows | Mobile build directories are excluded from the web development watcher. |
-
-## Added capabilities
-
-The storefront now covers sixteen categories, including clothing, electrical appliances, school/office supplies, home goods, groceries, tools, and other items. Existing electronics categories and catalog identifiers are preserved.
-
-The website and native Flutter Android/iOS app have an upper-right Admin entry. Approved admins can publish and edit listings, mark items sold, or remove them. `animandy92@gmail.com` is the first approved admin. No example stock was inserted into the production catalog.
-
-The Flutter app includes catalog search/sort, product details, shared account login, carts, saved items, order history, and the admin panel. Android and iOS Firebase apps use `com.jackofalltrades.marketplace`.
+- A responsive Ghana storefront with **Dream it. Own it.**, interactive category artwork, a budget finder, prominent phones/laptops, support **0594081604**, and the owner's WhatsApp community link.
+- Admin-only catalog changes, explicit stock/photo/condition/price checks, private supplier applications, seller approval, private listing drafts, and camera/gallery JPEG uploads on web and Android. Legacy listings require an admin check before purchase.
+- Server-priced checkout with configured delivery zones and tax, atomic inventory reservations, idempotent order/payment creation, hosted Paystack card/mobile money checkout, signed webhooks, and expired-stock reconciliation. No invented delivery timing, free shipping, or automatic 10% tax.
+- Customer order history, delivery updates, payment rechecking, unpaid cancellation, help/return requests, full refund submission/reconciliation, and explicit restocking of physically checked returns. Late payments after stock release require support review.
+- Purchase-backed product reviews. Products without recorded reviews show **No reviews yet** and do not qualify for rating filters.
+- Private per-order costs and pilot reporting for completed deliveries, cancellations, refunds, repeat purchases, acquisition cost, and contribution after costs. Missing costs remain unknown. The report is bounded to 500 orders and flags truncation.
+- Native Android seller submissions, order handling, support, delivery/return information, reviews, and an updated **1.1.0+2** testing APK. The full admin operations hub is available on the website.
 
 ## Verification
 
-- Website production build completed.
-- Three checkout/payment unit tests passed, including forged totals and invalid payment ownership.
-- Six Firestore emulator authorization tests passed, including admin listing lifecycle, buyer denial, private account data, and role escalation prevention.
-- An Auth/Firestore/Functions emulator integration test passed: forged identity was ignored, client totals were recalculated, unpaid orders stayed pending, and another user could not see those orders.
-- Flutter analysis completed with no issues and five model/widget tests passed.
-- The Android debug APK was built locally; Android package metadata and its v2 signature were verified. GitHub's independent Android build also passed.
-- Root and Functions dependency audits reported zero known vulnerabilities after dependency updates.
-- Shared web/mobile category synchronization check passed.
-- Browser checks confirmed the general storefront and the protected admin sign-in entry at phone width.
+Local checks cover web type checking/build, six business/payment unit tests, nine Firestore authorization tests, an Auth/Firestore/Functions emulator purchase-through-refund workflow, Flutter analysis and six widget/model tests, and shared web/mobile categories.
 
-GitHub CI repeats web/API, rules, mobile analysis/tests, an Android debug build, and an unsigned iOS compile.
+The Android APK was built and inspected: package `com.jackofalltrades.marketplace`, version `1.1.0`, version code `2`, minimum Android API `24`, and ARM64/ARMv7/x86_64 support. Its v2 signature is valid and the signing certificate matches the previous testing APK.
 
-## Operational limits
+The payment integration test uses a local provider stub. It verifies authoritative prices, card/mobile-money channel requests, concurrent final-stock purchases, duplicate charge handling, ownership, fulfillment, support, review restrictions, repeated refund reconciliation, reserved-stock edit protection, and expiry. It does not prove a real Paystack account or mobile network accepted payment.
 
-Online payment needs a server-side Paystack secret; without it checkout accepts unpaid pending order requests. Live payment transactions were not performed. Inventory reservation, automatic webhooks, fulfillment/refunds, and business tax configuration remain operational work for a production store. Sold items can be managed manually through the admin panel.
+GitHub CI repeats these checks and compiles an Android debug APK and unsigned iOS app. Windows cannot verify an iOS compile or produce a signed iOS release.
 
-iOS signing and distribution require macOS/Xcode and the owner's Apple team. The Windows workspace cannot produce a signed iOS package. The Android debug APK is a testing build, not a store release.
+## Deployment and remaining operations
 
-Firebase Hosting and Firestore rules were deployed successfully on October 4, 2026. Cloud Functions deployment was rejected because the project is on the Spark plan and Artifact Registry requires Blaze billing. Until billing is enabled and `api` is deployed, live checkout is unavailable. Storefront browsing and approved-admin listing management use Firebase directly and are deployed.
+Cloud Functions deployment was attempted and rejected: the Firebase project is on Spark, and Artifact Registry requires Blaze billing. The API and scheduler explicitly bind `PAYSTACK_SECRET_KEY` through Firebase Secret Manager, ready for deployment after owner setup. Checkout remains closed while the API/payment configuration and delivery zones are unavailable.
+
+Hosting and Firestore rules are deployable separately. The owner has authorized publishing the updated storefront and Android testing APK. Deployment status is recorded in the task's final response.
+
+No real money was moved, no supplier was recruited, and no physical stock, delivery, return, or support response was verified. The initial return policy is editable and needs owner review. The owner must configure real delivery fees/timing, enable Blaze, activate Paystack, configure the secret/webhook, check stock/photos/condition/prices, and complete a real purchase-delivery-refund acceptance run. See [PILOT.md](PILOT.md).
+
+The Android APK uses development signing and is a testing build. Store distribution needs the owner's production signing key. Photos are embedded as compressed JPEGs for this small pilot; larger catalogs need object storage and pagination. Support requests currently update order history; outbound email/SMS notifications and a custom-domain mailbox are not configured.

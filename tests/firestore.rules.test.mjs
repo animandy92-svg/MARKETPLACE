@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { after, before, test } from 'node:test';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, collectionGroup, query, collection, where } from 'firebase/firestore';
 
 let env;
 before(async () => {
@@ -70,4 +70,41 @@ test('approved admin can publish, mark sold, and remove listings; profile roles 
   await assertFails(updateDoc(ref,{stock:1.5}));
   await assertSucceeds(deleteDoc(ref));
   await assertFails(setDoc(doc(env.authenticatedContext('alice').firestore(),'products/forged'),product));
+});
+
+test('admin reviews suppliers; approved sellers can submit only private owned drafts', async () => {
+  const adminDb=env.authenticatedContext('manager',{admin:true}).firestore();
+  const sellerDb=env.authenticatedContext('seller',{email:'seller@example.test'}).firestore();
+  const draft={name:'Laptop',category:'laptop',price:4000,stock:1,rating:0,review_count:0,review_sum:0,description:'Actual laptop',specs:[],image:'data:image/jpeg;base64,AAAA',condition:'used',seller_id:'seller',active:false,status:'pending',verified:false};
+  await assertFails(setDoc(doc(sellerDb,'listing_submissions/laptop'),draft));
+  await assertFails(setDoc(doc(sellerDb,'seller_profiles/seller'),{status:'approved'}));
+  await assertSucceeds(setDoc(doc(adminDb,'seller_profiles/seller'),{status:'approved',name:'Supplier'}));
+  await assertSucceeds(setDoc(doc(sellerDb,'listing_submissions/laptop'),draft));
+  await assertSucceeds(getDocs(query(collection(sellerDb,'listing_submissions'),where('seller_id','==','seller'))));
+  await assertFails(getDoc(doc(env.authenticatedContext('alice').firestore(),'listing_submissions/laptop')));
+  await assertFails(updateDoc(doc(sellerDb,'listing_submissions/laptop'),{active:true,status:'active',verified:true}));
+  await assertFails(setDoc(doc(sellerDb,'products/laptop'),{...draft,active:true,status:'active'}));
+  await assertFails(updateDoc(doc(sellerDb,'listing_submissions/laptop'),{seller_id:'alice'}));
+  await assertSucceeds(getDocs(collectionGroup(adminDb,'seller_requests')));
+  await assertSucceeds(updateDoc(doc(adminDb,'users/alice/seller_requests/application'),{status:'approved',notes:'Checked supplier'}));
+  await assertSucceeds(updateDoc(doc(adminDb,'seller_profiles/seller'),{status:'suspended'}));
+  await assertFails(updateDoc(doc(sellerDb,'listing_submissions/laptop'),{stock:2}));
+});
+test('delivery terms are public but only admin can configure; costs and reservations stay private', async()=>{
+  const adminDb=env.authenticatedContext('manager',{admin:true}).firestore(),buyerDb=env.authenticatedContext('alice').firestore();
+  const config={serviceArea:'Ghana',deliveryZones:[],supportPhone:'0594081604',supportEmail:'',supportHours:'',returnDays:7,returnTerms:'Contact support',taxBasisPoints:0};
+  await assertFails(setDoc(doc(buyerDb,'shop/settings'),config));
+  await assertSucceeds(setDoc(doc(adminDb,'shop/settings'),config));
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(),'shop/settings')));
+  await assertFails(updateDoc(doc(adminDb,'shop/settings'),{taxBasisPoints:-1}));
+  await assertSucceeds(setDoc(doc(adminDb,'product_costs/laptop'),{cost:2000}));
+  await assertFails(getDoc(doc(buyerDb,'product_costs/laptop')));
+  await assertFails(setDoc(doc(buyerDb,'payment_intents/forged'),{verified:true}));
+  await assertFails(setDoc(doc(buyerDb,'reservation_queue/forged'),{expires_at:0}));
+  await assertFails(setDoc(doc(adminDb,'products/laptop/reviews/forged'),{rating:5}));
+});
+test('even admin cannot overwrite or delete stock held for checkout',async()=>{
+  await env.withSecurityRulesDisabled(async context=>setDoc(doc(context.firestore(),'products/held'),{name:'Phone',category:'phone',price:100,stock:0,reserved:1,rating:0,description:'Phone',specs:[],image:''}));
+  const ref=doc(env.authenticatedContext('manager',{admin:true}).firestore(),'products/held');
+  await assertFails(updateDoc(ref,{stock:10}));await assertFails(deleteDoc(ref));
 });

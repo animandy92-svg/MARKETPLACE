@@ -19,19 +19,21 @@ import { Search, SlidersHorizontal, Loader2 } from 'lucide-react';
 
 export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [sortBy, setSortBy] = useState('name');
   const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('max') || '');
   const [minRating, setMinRating] = useState('');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   const categoryFilter = searchParams.get('category') || 'all';
+  const queryParam = searchParams.get('q') || '', budgetParam = searchParams.get('max') || '';
+  useEffect(() => { setSearchQuery(queryParam); setMaxPrice(budgetParam); }, [queryParam, budgetParam]);
 
   const categoryLabels = Object.fromEntries([['all', 'All Products'], ...categories.map((category) => [category.id, category.name])]);
-  const categoryGradients = Object.fromEntries([['all', 'from-primary to-purple-600'], ...categories.map((category) => [category.id, category.gradient])]);
+  const categoryGradients = Object.fromEntries([['all', 'from-primary to-emerald-800'], ...categories.map((category) => [category.id, category.gradient])]);
   useEffect(() => {
     const debounce = setTimeout(async () => {
       setLoading(true);
@@ -41,13 +43,13 @@ export function ProductsPage() {
           id: doc.id,
           ...doc.data(),
         })) as any[];
-        items = items.filter((item) => item.status !== 'sold' && item.active !== false);
+        items = items.filter((item) => item.status !== 'sold' && item.status !== 'draft' && item.active !== false);
 
         if (categoryFilter !== 'all') items = items.filter((p) => p.category === categoryFilter);
-        if (inStockOnly) items = items.filter((p) => p.stock > 0);
+        if (inStockOnly) items = items.filter((p) => p.verified === true && p.stock > 0);
         items.sort((a, b) => sortBy === 'price-low' ? a.price - b.price
           : sortBy === 'price-high' ? b.price - a.price
-          : sortBy === 'rating' ? b.rating - a.rating : a.name.localeCompare(b.name));
+          : sortBy === 'rating' ? (b.review_count > 0 ? b.rating : 0) - (a.review_count > 0 ? a.rating : 0) : a.name.localeCompare(b.name));
         // Client-side filtering for fields that need compound queries
         if (searchQuery) {
           const s = searchQuery.toLowerCase();
@@ -64,7 +66,7 @@ export function ProductsPage() {
           items = items.filter((p: any) => p.price <= parseFloat(maxPrice));
         }
         if (minRating && minRating !== 'any') {
-          items = items.filter((p: any) => p.rating >= parseFloat(minRating));
+          items = items.filter((p: any) => p.review_count > 0 && p.rating >= parseFloat(minRating));
         }
 
         setProducts(items);
@@ -103,7 +105,7 @@ export function ProductsPage() {
             {categoryLabels[categoryFilter] || 'All Products'}
           </motion.h1>
           <motion.p className="text-white/80" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            {products.length} products available
+            {products.length} catalog finds
           </motion.p>
         </div>
       </div>

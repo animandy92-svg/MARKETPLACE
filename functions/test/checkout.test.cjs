@@ -11,9 +11,11 @@ test('rejects malformed, negative, fractional, duplicate and oversized carts', (
 });
 test('ignores submitted prices and computes currency in minor units', () => {
   const items = validateItems([{productId:'a',quantity:3,price:0,total:0}]);
-  const quote = quoteItems(items, {a:{name:'Device',price:19.99,stock:4}});
-  assert.equal(quote.total, 65.97);
-  assert.equal(quote.amountMinor, 6597);
+  const quote = quoteItems(items, {a:{name:'Device',price:19.99,stock:4,verified:true}});
+  assert.equal(quote.total, 59.97);
+  assert.equal(quote.amountMinor, 5997);
+  assert.equal(quoteItems(items, {a:{name:'Device',price:19.99,stock:4,verified:true}}, {deliveryMinor:1000,taxBasisPoints:1000}).amountMinor, 7597);
+  assert.throws(() => quoteItems(items, {a:{name:'Unchecked listing',price:19.99,stock:4}}), /needs a stock/);
   assert.equal(quote.items[0].price, 19.99);
   assert.throws(() => quoteItems(items, {a:{price:19.99,stock:2}}));
   assert.throws(() => quoteItems(items, {}));
@@ -21,10 +23,10 @@ test('ignores submitted prices and computes currency in minor units', () => {
   assert.throws(() => quoteItems(items, {a:{price:19.99,stock:4,active:false}}));
 });
 test('rejects payment reuse for another user, order, currency or amount', () => {
-  const intent = {user_id:'u',order_id:'o',reference:'jat_o',amount_minor:6597};
-  const payment = {status:'success',currency:'GHS',amount:6597,reference:'jat_o',metadata:{user_id:'u',order_id:'o'}};
+  const intent = {user_id:'u',order_id:'o',reference:'jat-o',amount_minor:6597};
+  const payment = {status:'success',currency:'GHS',amount:6597,reference:'jat-o',metadata:{user_id:'u',order_id:'o'}};
   assert.doesNotThrow(() => assertPayment(payment,intent,'u'));
-  for (const override of [{status:'pending'},{currency:'USD'},{amount:1},{reference:'jat_other'},
+  for (const override of [{status:'pending'},{currency:'USD'},{amount:1},{reference:'jat-other'},
     {metadata:{user_id:'other',order_id:'o'}},{metadata:{user_id:'u',order_id:'other'}}]) {
     assert.throws(() => assertPayment({...payment,...override},intent,'u'));
   }

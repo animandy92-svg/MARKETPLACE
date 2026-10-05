@@ -10,6 +10,10 @@ export interface Product {
   rating: number;
   active?: boolean;
   status?: string;
+  condition?: string;
+  review_count?: number;
+  verified?: boolean;
+  reserved?: number;
 }
 
 export const products: Product[] = [

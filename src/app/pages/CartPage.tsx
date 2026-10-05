@@ -7,9 +7,12 @@ import { Separator } from '../components/ui/separator';
 import { useCart } from '../contexts/CartContext';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { formatCurrency } from '../utils/formatCurrency';
+import { useShop } from '../lib/shop';
 
 export function CartPage() {
   const { items, removeFromCart, updateQuantity, total, clearCart } = useCart();
+  const shop = useShop();
+  const tax = Math.round(Math.round(total * 100) * shop.taxBasisPoints / 10000) / 100;
 
   if (items.length === 0) {
     return (
@@ -30,7 +33,7 @@ export function CartPage() {
             Start shopping to add items to your cart
           </p>
           <Link to="/products">
-            <Button size="lg" className="bg-gradient-to-r from-primary to-purple-600 shadow-lg shadow-primary/20">
+            <Button size="lg" className="bg-gradient-to-r from-primary to-emerald-800 shadow-lg shadow-primary/20">
               Browse Products
             </Button>
           </Link>
@@ -167,7 +170,7 @@ export function CartPage() {
           >
             <Card className="sticky top-20 border-0 shadow-xl shadow-primary/10 overflow-hidden">
               {/* Gradient header */}
-              <div className="bg-gradient-to-r from-primary to-purple-600 p-4">
+              <div className="bg-gradient-to-r from-primary to-emerald-800 p-4">
                 <h2 className="text-xl font-bold text-white">Order Summary</h2>
               </div>
               <CardContent className="p-6 space-y-4">
@@ -178,27 +181,27 @@ export function CartPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span className="text-emerald-600 font-medium">Free</span>
+                    <span className="text-sm font-medium">Choose area at checkout</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax</span>
-                    <span className="font-medium">{formatCurrency(total * 0.1)}</span>
+                    <span className="font-medium">{formatCurrency(tax)}</span>
                   </div>
                 </div>
 
                 <Separator className="bg-gradient-to-r from-transparent via-border to-transparent" />
 
                 <div className="flex justify-between text-xl font-bold">
-                  <span>Total</span>
-                  <span className="gradient-text">{formatCurrency(total * 1.1)}</span>
+                  <span>Before delivery</span>
+                  <span className="gradient-text">{formatCurrency(total + tax)}</span>
                 </div>
 
-                <Button className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all" size="lg">
+                <Button className="w-full bg-gradient-to-r from-primary to-emerald-800 hover:opacity-90 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all" size="lg">
                   Proceed to Checkout
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Taxes calculated at checkout
+                  Delivery charges and live stock are confirmed at checkout
                 </p>
               </CardContent>
             </Card>

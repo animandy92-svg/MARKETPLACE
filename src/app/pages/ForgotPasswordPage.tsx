@@ -34,7 +34,7 @@ export function ForgotPasswordPage() {
     <div className="min-h-[calc(100vh-12rem)] flex items-center justify-center px-4 py-12">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <Card className="border-0 shadow-2xl shadow-primary/10 overflow-hidden">
-          <div className="bg-gradient-to-r from-primary to-purple-600 py-6 px-6 text-center">
+          <div className="bg-gradient-to-r from-primary to-emerald-800 py-6 px-6 text-center">
             <img src={logoSvg} alt="Jack of all Trades" className="h-14 w-auto mx-auto mb-3 brightness-0 invert" />
             <h2 className="text-xl font-bold text-white">Reset Password</h2>
             <p className="text-white/80 text-sm">We'll send you a reset link</p>
@@ -64,7 +64,7 @@ export function ForgotPasswordPage() {
                     />
                   </div>
                 </div>
-                <Button type="submit" className="w-full bg-gradient-to-r from-primary to-purple-600" disabled={isLoading}>
+                <Button type="submit" className="w-full bg-gradient-to-r from-primary to-emerald-800" disabled={isLoading}>
                   {isLoading ? 'Sending...' : 'Send Reset Link'}
                 </Button>
               </form>

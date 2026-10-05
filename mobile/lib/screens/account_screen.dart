@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/marketplace_service.dart';
 import '../widgets/product_tile.dart';
+import 'help_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen(this.service, this.user, {super.key});
@@ -17,6 +18,146 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   late final stream = widget.service.orders(widget.user.uid);
   String? verifying;
+  Future<void> orderAction(String id, Map<String, dynamic> body) async {
+    setState(() => verifying = id);
+    try {
+      await widget.service.request('/orders/$id/action', body);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Your order was updated.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => verifying = null);
+    }
+  }
+
+  Future<void> help(String id) async {
+    String message = '';
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, change) => AlertDialog(
+          title: const Text('Ask for help or a return'),
+          content: TextField(
+            maxLength: 2000,
+            maxLines: 4,
+            onChanged: (value) => change(() => message = value),
+            decoration: const InputDecoration(hintText: 'Describe the problem'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: message.trim().length < 5
+                  ? null
+                  : () => Navigator.pop(context, message.trim()),
+              child: const Text('Send request'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result != null) {
+      await orderAction(id, {'action': 'help', 'message': result});
+    }
+  }
+
+  Future<void> review(String id, List<dynamic> items) async {
+    if (items.isEmpty) return;
+    int rating = 5;
+    String comment = '', productId = items.first['product_id'] as String;
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, change) => AlertDialog(
+          title: const Text('Review your delivered purchase'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: productId,
+                  isExpanded: true,
+                  items: items
+                      .map(
+                        (line) => DropdownMenuItem(
+                          value: line['product_id'] as String,
+                          child: Text(line['name'] as String),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => change(() => productId = value!),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<int>(
+                  initialValue: rating,
+                  items: [
+                    for (final n in [5, 4, 3, 2, 1])
+                      DropdownMenuItem(value: n, child: Text('$n stars')),
+                  ],
+                  onChanged: (value) => change(() => rating = value!),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  maxLength: 1000,
+                  maxLines: 3,
+                  onChanged: (value) => change(() => comment = value),
+                  decoration: const InputDecoration(
+                    hintText: 'How was the item?',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: comment.trim().length < 3
+                  ? null
+                  : () => Navigator.pop(context, {
+                      'productId': productId,
+                      'rating': rating,
+                      'comment': comment.trim(),
+                    }),
+              child: const Text('Publish review'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null) return;
+    try {
+      await widget.service.request('/reviews/${result['productId']}', {
+        'orderId': id,
+        'rating': result['rating'],
+        'comment': result['comment'],
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Verified purchase review published.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    }
+  }
+
   Future<void> verify(String reference) async {
     setState(() => verifying = reference);
     try {
@@ -147,6 +288,27 @@ class _AccountScreenState extends State<AccountScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(data['shipping_address'] as String? ?? ''),
+                        if (data['delivery_zone'] != null)
+                          Text(
+                            '${data['delivery_zone']} · ${data['delivery_timing'] ?? ''}',
+                          ),
+                        if (data['delivery_note'] != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Update from the team: ${data['delivery_note']}',
+                            ),
+                          ),
+                        if (data['refund_status'] != null)
+                          Text('Refund: ${data['refund_status']}'),
+                        for (final entry in data['history'] as List? ?? [])
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              '${entry['status']} · ${entry['note']}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
                         for (final item in data['items'] as List? ?? [])
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
@@ -164,6 +326,49 @@ class _AccountScreenState extends State<AccountScreen> {
                                   ? 'Verifying…'
                                   : 'Verify payment',
                             ),
+                          ),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            if (data['status'] == 'pending' &&
+                                data['inventory_state'] == 'reserved')
+                              TextButton(
+                                onPressed: verifying == null
+                                    ? () => orderAction(order.id, {
+                                        'action': 'cancel',
+                                      })
+                                    : null,
+                                child: const Text('Cancel unpaid order'),
+                              ),
+                            TextButton(
+                              onPressed: verifying == null
+                                  ? () => help(order.id)
+                                  : null,
+                              child: const Text('Help / return request'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => HelpScreen(widget.service),
+                                ),
+                              ),
+                              child: const Text('Contact support'),
+                            ),
+                            if (data['status'] == 'delivered')
+                              TextButton(
+                                onPressed: () => review(
+                                  order.id,
+                                  data['items'] as List? ?? [],
+                                ),
+                                child: const Text('Review purchase'),
+                              ),
+                          ],
+                        ),
+                        if (data['help_request'] != null)
+                          Text(
+                            'Your help request is ${data['help_status'] ?? 'open'}.',
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                       ],
                     ),

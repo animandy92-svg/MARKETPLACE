@@ -66,6 +66,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => { if (!user) saveGuest(items); }, [items, user?.id]);
   const report = () => toast.error('Could not update your cart. Please try again.');
   const addToCart = (product: Product) => {
+    if (product.verified !== true) { toast.error('This item needs a stock check before ordering'); return; }
     if (product.stock <= 0) { toast.error('This product is out of stock'); return; }
     if (user) {
       const ref = doc(db, 'users', user.id, 'cart', product.id);

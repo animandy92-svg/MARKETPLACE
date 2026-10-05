@@ -40,7 +40,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
     >
       <Link to={`/product/${product.id}`}>
         <Card
-          className={`group h-full border-l-4 ${colors.border} hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 hover:-translate-y-1 bg-white`}
+          className="product-card group h-full hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 hover:-translate-y-1 bg-white"
         >
           <CardContent className="p-4">
             <div className="aspect-square relative mb-4 overflow-hidden rounded-lg bg-muted">
@@ -53,17 +53,17 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               <div className="absolute top-2 left-2">
                 <WishlistButton productId={product.id} />
               </div>
-              {product.stock < 10 && (
+              {product.stock < 5 && (
                 <Badge variant="destructive" className="absolute top-2 right-2 shadow-lg">
-                  Low Stock
+                  {product.stock === 0 ? 'Out of stock' : 'Only ' + product.stock + ' left'}
                 </Badge>
               )}
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span className="text-sm font-medium">{product.rating}</span>
+                {!!product.review_count && <Star className="h-4 w-4 fill-amber-400 text-amber-400" />}
+                <span className="text-xs text-muted-foreground">{product.review_count ? `${Number(product.rating).toFixed(1)} · ${product.review_count} verified ${product.review_count === 1 ? 'review' : 'reviews'}` : 'No reviews yet'}</span>
               </div>
 
               <h3 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors duration-200">
@@ -72,6 +72,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {product.description}
               </p>
+              {product.verified !== true && <p className="text-xs text-amber-700">Awaiting stock & condition check</p>}
             </div>
           </CardContent>
 
@@ -82,6 +83,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
             <motion.div whileTap={{ scale: 0.9 }}>
               <Button
                 size="sm"
+                disabled={product.stock <= 0 || product.verified !== true}
                 onClick={handleAddToCart}
                 className="shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-shadow"
               >

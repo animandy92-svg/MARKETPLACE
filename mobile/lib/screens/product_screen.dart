@@ -82,7 +82,13 @@ class ProductScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '★ ${product.rating.toStringAsFixed(1)} · ${product.stock} available',
+                  product.reviewCount > 0
+                      ? '★ ${product.rating.toStringAsFixed(1)} · ${product.reviewCount} verified reviews'
+                      : 'No reviews yet',
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Condition: ${product.condition.replaceAll('-', ' ')} · ${product.stock} available',
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -116,9 +122,17 @@ class ProductScreen extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: FilledButton.icon(
-          onPressed: product.stock > 0 ? () => onAdd(product) : null,
+          onPressed: product.verified && product.stock > 0
+              ? () => onAdd(product)
+              : null,
           icon: const Icon(Icons.add_shopping_cart),
-          label: Text(product.stock > 0 ? 'Add to cart' : 'Out of stock'),
+          label: Text(
+            !product.verified
+                ? 'Awaiting stock check'
+                : product.stock > 0
+                ? 'Add to cart'
+                : 'Out of stock',
+          ),
         ),
       ),
     ),

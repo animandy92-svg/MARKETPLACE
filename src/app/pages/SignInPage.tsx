@@ -62,7 +62,7 @@ export function SignInPage() {
         className="w-full max-w-md relative z-10"
       >
         <Card className="border-0 shadow-2xl shadow-primary/10 overflow-hidden">
-          <div className="bg-gradient-to-r from-primary to-purple-600 py-6 px-6 text-center">
+          <div className="bg-gradient-to-r from-primary to-emerald-800 py-6 px-6 text-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -147,7 +147,7 @@ export function SignInPage() {
               >
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 shadow-lg shadow-primary/20"
+                  className="w-full bg-gradient-to-r from-primary to-emerald-800 hover:opacity-90 shadow-lg shadow-primary/20"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Signing in...' : 'Sign In'}

@@ -2,29 +2,29 @@
 
 :root {
   --font-size: 16px;
-  --background: #fafbff;
-  --foreground: oklch(0.145 0 0);
+  --background: #fcfbf7;
+  --foreground: #183d36;
   --card: #ffffff;
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: #6366f1;
+  --primary: #176454;
   --primary-foreground: #ffffff;
   --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #1e1b4b;
-  --muted: #f1f0fb;
-  --muted-foreground: #6b7280;
-  --accent: #e0e7ff;
-  --accent-foreground: #312e81;
+  --secondary-foreground: #183d36;
+  --muted: #f0f2ec;
+  --muted-foreground: #66756c;
+  --accent: #e0eee7;
+  --accent-foreground: #176454;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: rgba(99, 102, 241, 0.12);
+  --border: rgba(24, 61, 54, 0.14);
   --input: transparent;
-  --input-background: #f1f0fb;
+  --input-background: #f0f2ec;
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #6366f1;
+  --ring: #176454;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -41,7 +41,7 @@
   --sidebar-ring: #6366f1;
 
   /* Gradient tokens */
-  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  --gradient-primary: linear-gradient(135deg, #176454 0%, #2a8070 100%);
   --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --gradient-warm: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   --gradient-cool: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);

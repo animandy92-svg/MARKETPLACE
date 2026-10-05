@@ -12,6 +12,8 @@ import 'screens/product_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/admin_screen.dart';
 import 'screens/account_screen.dart';
+import 'screens/help_screen.dart';
+import 'screens/seller_screen.dart';
 import 'widgets/product_tile.dart';
 
 Future<void> main() async {
@@ -52,8 +54,8 @@ class MarketplaceApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff6366f1)),
-      scaffoldBackgroundColor: const Color(0xfffafafe),
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff176454)),
+      scaffoldBackgroundColor: const Color(0xfffcfbf7),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -160,6 +162,28 @@ class _MarketplaceShellState extends State<MarketplaceShell> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
           actions: [
+            IconButton(
+              tooltip: 'Delivery, returns and support',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => HelpScreen(widget.service)),
+              ),
+              icon: const Icon(Icons.help_outline),
+            ),
+            IconButton(
+              tooltip: 'Seller workspace',
+              onPressed: () async {
+                if (await login() && context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SellerScreen(widget.service),
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.storefront_outlined),
+            ),
             TextButton.icon(
               onPressed: admin,
               icon: const Icon(Icons.admin_panel_settings_outlined, size: 20),

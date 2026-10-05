@@ -1,28 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { CartProvider } from './contexts/CartContext';
 import { AuthProvider } from './contexts/AuthContext';
-import { SplashPage } from './pages/SplashPage';
 import { router } from './routes';
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(() => {
-    return !sessionStorage.getItem('splashShown');
-  });
-
-  const handleSplashComplete = () => {
-    sessionStorage.setItem('splashShown', 'true');
-    setShowSplash(false);
-  };
-
+  useEffect(() => { const source=new URLSearchParams(window.location.search).get('utm_source'); if(source) sessionStorage.setItem('jat-source',source.slice(0,100)); }, []);
   return (
     <AuthProvider>
       <CartProvider>
-        {showSplash ? (
-          <SplashPage onComplete={handleSplashComplete} />
-        ) : (
-          <RouterProvider router={router} />
-        )}
+        <RouterProvider router={router} />
       </CartProvider>
     </AuthProvider>
   );

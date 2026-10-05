@@ -8,12 +8,13 @@
     "dev:frontend": "vite",
     "dev:backend": "cd functions && npm run serve",
     "build": "vite build",
+    "check:web": "node functions/node_modules/typescript/bin/tsc -p tsconfig.web.json",
     "build:functions": "cd functions && npm run build",
     "deploy": "npm run build && firebase deploy",
     "seed": "node scripts/migrate-to-firestore.cjs",
     "test": "npm --prefix functions test",
     "test:rules": "firebase emulators:exec --only firestore --project demo-marketplace \"node --test tests/firestore.rules.test.mjs\"",
-    "test:api": "npm run build:functions && firebase emulators:exec --only auth,firestore,functions --project demo-marketplace \"node --test tests/api.integration.test.mjs\""
+    "test:api": "npm run build:functions && node scripts/test-api.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

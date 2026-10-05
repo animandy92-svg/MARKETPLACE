@@ -20,6 +20,8 @@ export function ProductDetailPage() {
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [reviews,setReviews] = useState<any[]>([]);
+  useEffect(() => { if (!id) return; return onSnapshot(collection(db,'products',id,'reviews'),snap=>setReviews(snap.docs.map(d=>({id:d.id,...d.data()}))),()=>{}); }, [id]);
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -50,17 +52,19 @@ export function ProductDetailPage() {
       <div className="space-y-6">
         <Badge variant="secondary" className="bg-primary/10 text-primary">{categoryLabel(product.category)}</Badge>
         <h1 className="text-3xl md:text-4xl font-bold">{product.name}</h1>
-        <div className="flex items-center gap-2"><Star className="h-5 w-5 fill-amber-400 text-amber-400" /><span>{product.rating} out of 5</span></div>
+        <div className="flex items-center gap-2">{product.review_count ? <><Star className="h-5 w-5 fill-amber-400 text-amber-400" /><span>{Number(product.rating).toFixed(1)} out of 5 · {product.review_count} purchase-backed reviews</span></> : <span className="text-sm text-muted-foreground">No reviews yet</span>}</div>
+        {product.condition && <p className="text-sm capitalize">Condition: {product.condition.replaceAll('-',' ')}</p>}
         <p className="text-3xl font-bold text-primary">{formatCurrency(product.price)}</p>
         <p className="text-muted-foreground text-lg leading-relaxed">{product.description}</p>
         {!!product.specs?.length && <div className="space-y-3"><h2 className="font-bold text-lg">Item details</h2>
           {product.specs.map((spec, index) => <div key={index} className="flex gap-3"><Check className="h-5 w-5 text-primary shrink-0" /><span>{spec}</span></div>)}
         </div>}
-        <p className={product.stock > 0 ? 'text-emerald-700' : 'text-muted-foreground'}>{product.stock > 0 ? product.stock + ' available' : 'Out of stock'}</p>
-        <div className="flex gap-3"><Button size="lg" disabled={product.stock <= 0 || product.active === false || product.status === 'sold'} onClick={() => addToCart(product)}>
+        <p className={product.verified === true && product.stock > 0 ? 'text-emerald-700' : 'text-muted-foreground'}>{product.verified !== true ? 'Stock and condition must be checked before ordering. Contact us for availability.' : product.stock > 0 ? product.stock + ' available' : 'Out of stock'}</p>
+        <div className="flex gap-3"><Button size="lg" disabled={product.verified !== true || product.stock <= 0 || product.active === false || product.status === 'sold'} onClick={() => addToCart(product)}>
           <ShoppingCart className="h-5 w-5 mr-2" /> Add to Cart</Button><WishlistButton productId={product.id} /></div>
       </div>
     </div>
+    <section className="mt-12 policy-panel space-y-4"><h2 className="text-xl font-bold">From people who bought it</h2>{reviews.length ? reviews.map(review=><div className="border-t pt-4" key={review.id}><p className="text-sm font-semibold">{'★'.repeat(review.rating)} · Verified purchase</p><p className="mt-2 text-muted-foreground">{review.comment}</p></div>) : <p className="text-sm text-muted-foreground">No reviews yet. Customers can review an item after delivery.</p>}<Link to="/help" className="inline-block text-sm text-primary underline">Delivery, returns, and support</Link></section>
     {related.some((item) => item.category === product.category && item.id !== product.id) && <section className="mt-16">
       <h2 className="text-2xl font-bold mb-6">More in {categoryLabel(product.category)}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

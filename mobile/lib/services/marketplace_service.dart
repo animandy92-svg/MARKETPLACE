@@ -7,6 +7,11 @@ import 'package:http/http.dart' as http;
 import '../models/product.dart';
 
 class MarketplaceService {
+  static const communityUrl =
+      'https://chat.whatsapp.com/CG8lsJOYGZHLoDQR5pH1Zx';
+  static const website = 'https://jack-of-all-trades-marketplace.web.app';
+  Stream<DocumentSnapshot<Map<String, dynamic>>> settings() =>
+      db.doc('shop/settings').snapshots();
   MarketplaceService({FirebaseAuth? auth, FirebaseFirestore? db})
     : auth = auth ?? FirebaseAuth.instance,
       db = db ?? FirebaseFirestore.instance;
@@ -95,6 +100,9 @@ class MarketplaceService {
   }
 
   Future<void> addToCart(Product product) async {
+    if (!product.verified) {
+      throw Exception('This item needs a stock check before ordering.');
+    }
     final uid = auth.currentUser!.uid;
     final ref = userCollection(uid, 'cart').doc(product.id);
     await db.runTransaction((transaction) async {
@@ -163,6 +171,12 @@ class MarketplaceService {
                 ? http.get(uri, headers: headers)
                 : http.post(uri, headers: headers, body: jsonEncode(body)))
             .timeout(const Duration(seconds: 30));
+    if (response.headers['content-type']?.contains('application/json') !=
+        true) {
+      throw Exception(
+        'The order service is being prepared. Contact support on 0594081604.',
+      );
+    }
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode >= 400) {
       throw Exception(data['error'] ?? 'Could not complete the request.');

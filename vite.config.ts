@@ -29,7 +29,7 @@ export default defineConfig({
         name: 'Jack of all Trades',
         short_name: 'JAT Marketplace',
         description: 'Your everyday marketplace for fashion, appliances, school supplies, electronics, home essentials, and more',
-        theme_color: '#6366f1',
+        theme_color: '#176454',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
@@ -42,6 +42,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        navigateFallbackDenylist: [/^\/api\//, /^\/downloads\//],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {

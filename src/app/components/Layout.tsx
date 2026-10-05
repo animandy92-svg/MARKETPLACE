@@ -1,80 +1,20 @@
-import { Link, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import { ArrowUpRight, Phone } from 'lucide-react';
 import { Header } from './Header';
 import { Toaster } from './ui/sonner';
-import { categories } from '../data/categories';
+import { useShop, phoneLink, communityUrl } from '../lib/shop';
 
 export function Layout() {
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1">
-        <Outlet />
-      </main>
-      <footer className="relative mt-12">
-        <div className="h-px w-full" style={{ background: 'var(--gradient-primary)' }} />
-        <div
-          className="py-12 px-4"
-          style={{
-            background: 'linear-gradient(180deg, #1e1b4b 0%, #0f0c29 100%)',
-          }}
-        >
-          <div className="container mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-              {/* Brand */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-white">Jack of all Trades</h3>
-                <p className="text-sm text-indigo-200/60">
-                  Your everyday marketplace for fashion, appliances, school supplies, electronics, home essentials, and more.
-                </p>
-              </div>
-
-              {/* Categories */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-white uppercase tracking-wider">Categories</h4>
-                <div className="space-y-2">
-                  {categories.slice(0, 6).map((category) => <Link key={category.id} to={'/products?category=' + category.id} className="block text-sm text-indigo-200/60 hover:text-white transition-colors">{category.name}</Link>)}
-                </div>
-              </div>
-
-              {/* Quick Links */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-white uppercase tracking-wider">Quick Links</h4>
-                <div className="space-y-2">
-                  <Link to="/products" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    All Products
-                  </Link>
-                  <Link to="/sell" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    Sell on Marketplace
-                  </Link>
-                  <Link to="/cart" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    Your Cart
-                  </Link>
-                </div>
-              </div>
-
-              {/* Account */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-white uppercase tracking-wider">Account</h4>
-                <div className="space-y-2">
-                  <Link to="/signin" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    Sign In
-                  </Link>
-                  <Link to="/signup" className="block text-sm text-indigo-200/60 hover:text-white transition-colors">
-                    Create Account
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-indigo-500/20 pt-6 text-center">
-              <p className="text-sm text-indigo-200/40">
-                &copy; 2026 Jack of all Trades. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
-      <Toaster />
-    </div>
-  );
+  const shop = useShop();
+  const location = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname, location.search]);
+  return <div className="min-h-screen flex flex-col"><Header /><main className="flex-1"><Outlet /></main>
+    <footer className="site-footer"><div className="container mx-auto px-4"><div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      <div className="col-span-2 md:col-span-1"><p className="font-bold text-xl">Jack of all Trades<span className="text-[#e7aa87]">.</span></p><p className="text-sm text-[#bbcfc1] mt-4 max-w-xs leading-relaxed">Dream it. Own it.<br />Your everyday marketplace in {shop.serviceArea || 'Ghana'}.</p><a href={communityUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-5 text-xs">Join our WhatsApp community <ArrowUpRight className="w-4" /></a></div>
+      <div className="space-y-3 text-sm"><h2 className="font-semibold text-white mb-4">Explore</h2><Link className="block" to="/products">All finds</Link><Link className="block" to="/products?category=phone">Phones</Link><Link className="block" to="/products?category=laptop">Laptops</Link><Link className="block" to="/products?category=school">School & office</Link></div>
+      <div className="space-y-3 text-sm"><h2 className="font-semibold text-white mb-4">A little help</h2><Link className="block" to="/delivery">Delivery areas & charges</Link><Link className="block" to="/returns">Returns & refunds</Link><Link className="block" to="/help">Contact support</Link><Link className="block" to="/dashboard/orders">Track your order</Link><a className="block" href="https://github.com/animandy92-svg/MARKETPLACE/releases/download/v1.1.0/jack-of-all-trades-1.1.0.apk" download>Android app · test APK</a></div>
+      <div className="space-y-3 text-sm"><h2 className="font-semibold text-white mb-4">Let’s connect</h2>{shop.supportPhone && <a className="flex items-center gap-2" href={phoneLink(shop.supportPhone)}><Phone className="w-4" />{shop.supportPhone}</a>}{shop.supportEmail && <a className="block break-all" href={'mailto:' + shop.supportEmail}>{shop.supportEmail}</a>}<Link className="block" to="/sell">Become a supplier</Link><Link className="block" to="/seller">Seller workspace</Link><Link className="block" to="/admin">Marketplace admin</Link></div>
+    </div><div className="mt-10 pt-5 border-t border-white/15 flex flex-wrap justify-between gap-3 text-xs text-[#9fb7a9]"><p>© 2026 Jack of all Trades.</p><p>A little of everything. A lot of possibility.</p></div></div></footer><Toaster />
+  </div>;
 }

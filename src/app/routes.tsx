@@ -12,6 +12,8 @@ import { SignUpPage } from './pages/SignUpPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AdminPage } from './pages/AdminPage';
+import { HelpPage } from './pages/HelpPage';
+import { SellerDashboardPage } from './pages/SellerDashboardPage';
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +22,10 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: HomePage },
       { path: 'products', Component: ProductsPage },
+      { path: 'help', Component: HelpPage },
+      { path: 'delivery', Component: HelpPage },
+      { path: 'returns', Component: HelpPage },
+      { path: 'seller', element: <ProtectedRoute><SellerDashboardPage /></ProtectedRoute> },
       { path: 'admin', element: <ProtectedRoute><AdminPage /></ProtectedRoute> },
       { path: 'product/:id', Component: ProductDetailPage },
       { path: 'cart', Component: CartPage },

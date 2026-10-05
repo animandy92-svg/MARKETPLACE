@@ -1,0 +1,55 @@
+import { execFileSync } from 'node:child_process';
+import { readFile, stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+
+// Run only when publishing an Android update has been authorized.
+// Reuse Git's credential manager; never print or write its credential.
+const repo = 'animandy92-svg/MARKETPLACE', tag = 'v1.1.0';
+const mode = process.argv[2];
+if (!['--inspect', '--publish'].includes(mode)) throw new Error('Use --inspect or --publish');
+const credentials = execFileSync('git', ['credential', 'fill'], {
+  input: 'protocol=https\nhost=github.com\n\n', encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+});
+const token = credentials.split('\n').find(line => line.startsWith('password='))?.slice(9).trim();
+if (!token) throw new Error('GitHub authentication is unavailable');
+const headers = { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'marketplace-apk-release', 'X-GitHub-Api-Version': '2022-11-28' };
+async function api(route, options = {}) {
+  const response = await fetch(`https://api.github.com/repos/${repo}${route}`, {
+    ...options, headers: { ...headers, 'Content-Type': 'application/json', ...options.headers }, signal: AbortSignal.timeout(60000),
+  });
+  const data = await response.json();
+  if (!response.ok && response.status !== 404) throw new Error(`GitHub API returned ${response.status}: ${data.message || 'request failed'}`);
+  return { status: response.status, data };
+}
+const info = await api('');
+if (info.status !== 200 || info.data.private) throw new Error('A public repository is required for a public APK download');
+let release = await api(`/releases/tags/${tag}`);
+if (mode === '--inspect') {
+  console.log(JSON.stringify({ repository: info.data.html_url, public: true, release: release.status === 200 ? release.data.html_url : null }));
+} else {
+  const notes = await readFile(new URL('../artifacts/RELEASE-NOTES.md', import.meta.url), 'utf8');
+  if (release.status === 404) release = await api('/releases', { method: 'POST', body: JSON.stringify({
+    tag_name: tag, target_commitish: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+    name: 'Ghana pilot · Android 1.1.0 (testing)', body: notes, draft: true, prerelease: true,
+  }) });
+  for (const name of ['jack-of-all-trades-1.1.0.apk', 'jack-of-all-trades-1.1.0.sha256']) {
+    const filename = path.resolve('artifacts', name), { size } = await stat(filename);
+    const existing = release.data.assets?.find(asset => asset.name === name);
+    if (existing) {
+      const hash = createHash('sha256');
+      for await (const chunk of createReadStream(filename)) hash.update(chunk);
+      if (existing.size !== size || existing.digest !== 'sha256:' + hash.digest('hex')) throw new Error(`Release asset ${name} differs; review it before replacing a published build`);
+      console.log(JSON.stringify({ name: existing.name, size: existing.size, url: existing.browser_download_url })); continue;
+    }
+    const url = release.data.upload_url.replace(/\{.*$/, '') + '?name=' + encodeURIComponent(name);
+    const response = await fetch(url, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/octet-stream', 'Content-Length': String(size) },
+      body: createReadStream(filename), duplex: 'half', signal: AbortSignal.timeout(600000) });
+    if (!response.ok) throw new Error(`GitHub asset upload returned ${response.status}`);
+    const asset = await response.json();
+    console.log(JSON.stringify({ name: asset.name, size: asset.size, url: asset.browser_download_url }));
+  }
+  if (release.data.draft) await api(`/releases/${release.data.id}`, { method: 'PATCH', body: JSON.stringify({ draft: false }) });
+  console.log(JSON.stringify({ release: release.data.html_url }));
+}

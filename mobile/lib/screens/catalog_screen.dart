@@ -62,14 +62,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xff4f46e5), Color(0xff9333ea)],
+            colors: [Color(0xff176454), Color(0xff36836c)],
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Everyday finds. Endless possibilities.',
+              'Dream it. Own it.',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 26,
@@ -78,7 +78,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Fashion, appliances, school supplies, home goods, and more.',
+              'Phones, laptops, study essentials and more. Your everyday marketplace in Ghana.',
               style: TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 20),

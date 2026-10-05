@@ -13,7 +13,7 @@ service cloud.firestore {
         && request.resource.data.stock is int && request.resource.data.stock >= 0
         && request.resource.data.rating is number && request.resource.data.rating >= 0 && request.resource.data.rating <= 5
         && request.resource.data.description is string && request.resource.data.specs is list
-        && request.resource.data.image is string;
+        && request.resource.data.image is string && request.resource.data.image.size() <= 500000;
     }
 
     // Users - only authenticated users can read/write their own data
@@ -41,7 +41,9 @@ service cloud.firestore {
 
       // Orders subcollection
       match /seller_requests/{requestId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
+        allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+        allow update: if isAdmin() && request.resource.data.status in ['approved', 'rejected', 'suspended']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'notes', 'reviewed_at']);
         allow create: if request.auth != null && request.auth.uid == userId
           && request.resource.data.user_id == userId
           && request.resource.data.email == request.auth.token.email
@@ -61,8 +63,48 @@ service cloud.firestore {
     // Only accounts with a trusted admin claim can change catalog listings.
     match /products/{productId} {
       allow read: if true;
-      allow create, update: if isAdmin() && validProduct();
+      allow create: if isAdmin() && validProduct();
+      allow update: if isAdmin() && validProduct()
+        && (!('reserved' in resource.data) || resource.data.reserved == 0);
+      allow delete: if isAdmin() && (!('reserved' in resource.data) || resource.data.reserved == 0);
+      match /reviews/{reviewId} { allow read: if true; allow write: if false; }
+    }
+
+    match /{path=**}/seller_requests/{requestId} { allow read: if isAdmin(); }
+    match /seller_profiles/{userId} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+      allow write: if isAdmin() && request.resource.data.status in ['approved', 'rejected', 'suspended'];
+    }
+    match /listing_submissions/{listingId} {
+      function approvedSeller() {
+        return request.auth != null && get(/databases/$(database)/documents/seller_profiles/$(request.auth.uid)).data.status == 'approved';
+      }
+      function ownDraft() {
+        return approvedSeller() && validProduct() && request.resource.data.seller_id == request.auth.uid
+          && request.resource.data.active == false && request.resource.data.status == 'pending'
+          && request.resource.data.verified == false && request.resource.data.rating == 0
+          && request.resource.data.review_count == 0 && request.resource.data.review_sum == 0
+          && request.resource.data.keys().hasOnly(['name','category','price','stock','description','image','specs','condition','seller_id','active','status','verified','rating','review_count','review_sum','created_at','updated_at']);
+      }
+      allow read: if isAdmin() || (request.auth != null && resource.data.seller_id == request.auth.uid);
+      allow create: if isAdmin() || ownDraft();
+      allow update: if isAdmin() || (resource.data.seller_id == request.auth.uid && ownDraft());
       allow delete: if isAdmin();
     }
+    match /shop/settings {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['serviceArea','deliveryZones','supportPhone','supportEmail','supportHours','taxBasisPoints','returnDays','returnTerms'])
+        && request.resource.data.serviceArea is string && request.resource.data.serviceArea.size() <= 200
+        && request.resource.data.deliveryZones is list && request.resource.data.deliveryZones.size() <= 20
+        && request.resource.data.supportPhone is string && request.resource.data.supportEmail is string
+        && request.resource.data.supportHours is string && request.resource.data.returnTerms is string
+        && request.resource.data.returnTerms.size() <= 3000
+        && request.resource.data.returnDays is int && request.resource.data.returnDays >= 1 && request.resource.data.returnDays <= 90
+        && request.resource.data.taxBasisPoints is int && request.resource.data.taxBasisPoints >= 0 && request.resource.data.taxBasisPoints <= 3000;
+    }
+    match /product_costs/{id} { allow read, write: if isAdmin(); }
+    match /shop_private/{id} { allow read, write: if isAdmin(); }
+    match /order_costs/{id} { allow read: if isAdmin(); allow write: if false; }
   }
 }

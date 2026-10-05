@@ -12,6 +12,7 @@ server/db/*.db-wal
 functions/.env*
 !functions/.env.example
 functions/.runtimeconfig.json
+functions/.secret.local
 **/local.properties
 **/key.properties
 **/*.jks
@@ -19,3 +20,4 @@ functions/.runtimeconfig.json
 **/.kotlin/
 artifacts/
 public/downloads/*.apk
+public/downloads/*.sha256

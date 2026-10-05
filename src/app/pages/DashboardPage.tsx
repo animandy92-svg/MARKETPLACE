@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Heart, Trash2, Loader2, Package, User, Settings } from 'lucide-react';
-import { collection, getDocs, getDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, deleteDoc, doc, updateDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { CustomerOrder } from '../components/CustomerOrder';
 import { db } from '../lib/firebase';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -43,11 +44,9 @@ export function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      getDocs(collection(db, 'users', user.id, 'orders')).then((snap) =>
-        snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Order[]
-      ),
-      getDocs(collection(db, 'users', user.id, 'wishlist')).then(async (snap) => {
+    let cancelled = false;
+    setLoading(true);
+    getDocs(collection(db, 'users', user.id, 'wishlist')).then(async (snap) => {
         const items: WishlistItem[] = [];
         for (const d of snap.docs) {
           const product = await getDoc(doc(db, 'products', d.id));
@@ -62,13 +61,14 @@ export function DashboardPage() {
           });
         }
         return items;
-      }),
-    ]).then(([ordersData, wishlistData]) => {
-      setOrders(ordersData || []);
+      }).then((wishlistData) => {
+      if (cancelled) return;
       setWishlist(wishlistData || []);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [user]);
+  useEffect(() => { setOrders([]); if (!user) return; return onSnapshot(query(collection(db,'users',user.id,'orders'),orderBy('created_at','desc')),snap=>setOrders(snap.docs.map(d=>({id:d.id,...d.data()})) as Order[]), () => toast.error('Could not load orders')); }, [user?.id]);
 
   const handleRemoveWishlist = async (productId: string) => {
     if (!user) return;
@@ -119,36 +119,14 @@ export function DashboardPage() {
                 <h3 className="text-xl font-bold mb-2">No orders yet</h3>
                 <p className="text-muted-foreground mb-4">Start shopping to see your orders here.</p>
                 <Link to="/products">
-                  <Button className="bg-gradient-to-r from-primary to-purple-600">Browse Products</Button>
+                  <Button className="bg-gradient-to-r from-primary to-emerald-800">Browse Products</Button>
                 </Link>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
               {orders.map((order) => (
-                <Card key={order.id} className="border-0 shadow-lg shadow-primary/5">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="font-bold">Order #{order.id.slice(0, 8)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.created_at?.toDate ? order.created_at.toDate().toLocaleDateString() : 'N/A'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-primary">{formatCurrency(order.total)}</p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          order.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' :
-                          order.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
-                          order.status === 'paid' ? 'bg-amber-100 text-amber-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {order.status}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CustomerOrder key={order.id} order={order} />
               ))}
             </div>
           )}
@@ -162,7 +140,7 @@ export function DashboardPage() {
                 <h3 className="text-xl font-bold mb-2">Wishlist is empty</h3>
                 <p className="text-muted-foreground mb-4">Save items you love for later.</p>
                 <Link to="/products">
-                  <Button className="bg-gradient-to-r from-primary to-purple-600">Browse Products</Button>
+                  <Button className="bg-gradient-to-r from-primary to-emerald-800">Browse Products</Button>
                 </Link>
               </CardContent>
             </Card>
@@ -204,7 +182,7 @@ export function DashboardPage() {
                 <label className="text-sm font-medium">Phone</label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+233..." className="mt-1" />
               </div>
-              <Button onClick={handleSaveProfile} disabled={saving} className="bg-gradient-to-r from-primary to-purple-600">
+              <Button onClick={handleSaveProfile} disabled={saving} className="bg-gradient-to-r from-primary to-emerald-800">
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Settings className="h-4 w-4 mr-2" />}
                 Save Changes
               </Button>
