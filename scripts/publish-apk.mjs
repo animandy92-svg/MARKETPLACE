@@ -74,12 +74,14 @@ if (mode === '--inspect') {
       try {
         const curlBinary = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'curl.exe');
         const uploaded = execFileSync(curlBinary, ['--config', '-', '--fail-with-body', '--silent', '--show-error',
-          '--request', 'POST', '--data-binary', `@${filename}`, '--connect-timeout', '20', '--max-time', '600'],
+          '--request', 'POST', '--data-binary', `@${filename}`, '--ipv4', '--connect-timeout', '60', '--max-time', '600',
+          '--retry', '2', '--retry-delay', '2'],
           { input: curlConfig, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 1024 * 1024 });
         const asset = JSON.parse(uploaded);
         if (asset.size !== size || asset.state !== 'uploaded' || asset.digest !== digest) throw new Error('GitHub did not confirm the complete asset');
       } catch (error) {
-        throw new Error(`Native upload of ${name} failed${error.status ? ` (curl exit ${error.status})` : ''}; the unpublished release can be resumed`);
+        const detail = String(error.stderr || error.message).trim().slice(0, 400);
+        throw new Error(`Native upload of ${name} failed${error.status ? ` (curl exit ${error.status})` : ''}: ${detail}. The unpublished release can be resumed`);
       }
     } else {
       const response = await fetch(url, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/octet-stream', 'Content-Length': String(size) },
