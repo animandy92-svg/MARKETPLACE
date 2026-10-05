@@ -56,21 +56,38 @@ if (mode === '--inspect') {
   }
   for (const name of [`jack-of-all-trades-${version}.apk`, `jack-of-all-trades-${version}.sha256`]) {
     const filename = path.resolve('artifacts', name), { size } = await stat(filename);
+    const hash = createHash('sha256');
+    for await (const chunk of createReadStream(filename)) hash.update(chunk);
+    const digest = 'sha256:' + hash.digest('hex');
     const existing = release.data.assets?.find(asset => asset.name === name);
     if (existing) {
-      const hash = createHash('sha256');
-      for await (const chunk of createReadStream(filename)) hash.update(chunk);
-      if (existing.size === size && existing.digest === 'sha256:' + hash.digest('hex')) continue;
+      if (existing.size === size && existing.digest === digest) continue;
       if (!release.data.draft) throw new Error(`Release asset ${name} differs; review it before replacing a published build`);
       // Only replace assets in our unpublished draft; published APKs stay immutable.
       await api(`/releases/assets/${existing.id}`, { method: 'DELETE' });
     }
     const url = release.data.upload_url.replace(/\{.*$/, '') + '?name=' + encodeURIComponent(name);
     console.log(`Uploading ${name} (${(size / 1024 / 1024).toFixed(1)} MB)`);
-    const response = await fetch(url, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/octet-stream', 'Content-Length': String(size) },
-      body: createReadStream(filename), duplex: 'half', signal: AbortSignal.timeout(600000) });
-    if (!response.ok) throw new Error(`GitHub asset upload returned ${response.status}`);
-    await response.json();
+    if (process.platform === 'win32') {
+      // Keep the GitHub credential in memory/stdin, out of command-line arguments.
+      const curlConfig = `url="${url}"\nheader="Authorization: Bearer ${token}"\nheader="Accept: application/vnd.github+json"\nheader="Content-Type: application/octet-stream"\n`;
+      try {
+        const curlBinary = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'curl.exe');
+        const uploaded = execFileSync(curlBinary, ['--config', '-', '--fail-with-body', '--silent', '--show-error',
+          '--request', 'POST', '--data-binary', `@${filename}`, '--connect-timeout', '20', '--max-time', '600'],
+          { input: curlConfig, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 1024 * 1024 });
+        const asset = JSON.parse(uploaded);
+        if (asset.size !== size || asset.state !== 'uploaded' || asset.digest !== digest) throw new Error('GitHub did not confirm the complete asset');
+      } catch (error) {
+        throw new Error(`Native upload of ${name} failed${error.status ? ` (curl exit ${error.status})` : ''}; the unpublished release can be resumed`);
+      }
+    } else {
+      const response = await fetch(url, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/octet-stream', 'Content-Length': String(size) },
+        body: createReadStream(filename), duplex: 'half', signal: AbortSignal.timeout(600000) });
+      if (!response.ok) throw new Error(`GitHub asset upload returned ${response.status}`);
+      const asset = await response.json();
+      if (asset.size !== size || asset.state !== 'uploaded' || asset.digest !== digest) throw new Error('GitHub did not confirm the complete asset');
+    }
   }
   if (release.data.draft) await api(`/releases/${release.data.id}`, { method: 'PATCH', body: JSON.stringify({ draft: false }) });
   const published = await api(`/releases/${release.data.id}`);

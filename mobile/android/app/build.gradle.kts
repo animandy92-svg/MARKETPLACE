@@ -36,6 +36,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    // Compress native libraries to keep the downloadable testing APK smaller.
+    // Android extracts them during installation on all supported API levels.
+    packaging {
+        jniLibs.useLegacyPackaging = true
+    }
 }
 
 kotlin {
