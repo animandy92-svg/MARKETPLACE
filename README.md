@@ -82,7 +82,7 @@ flutter build apk --debug
 
 The debug APK is generated at `mobile/build/app/outputs/flutter-apk/app-debug.apk`. It is intended for testing and is not a Play Store release. Release builds need your own Android signing key; the generated development signing configuration must be replaced before store submission.
 
-Version 1.2.0 is distributed through the [GitHub testing release](https://github.com/animandy92-svg/MARKETPLACE/releases/tag/v1.2.0). Firebase Spark blocks hosting APK executables; the website links to GitHub instead. The APK signing certificate matches the previous testing build.
+Version 1.2.0 is distributed through the [GitHub testing release](https://github.com/animandy92-svg/MARKETPLACE/releases/tag/v1.2.0). It uses an optimized release build with the existing development signing certificate so testers can update their installed apps. Firebase Spark blocks hosting APK executables; the website links to GitHub instead.
 
 ### Google sign-in and app icons
 
