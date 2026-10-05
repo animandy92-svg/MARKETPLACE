@@ -24,7 +24,11 @@ GitHub CI repeats these checks and compiles an Android debug APK and unsigned iO
 
 Cloud Functions deployment was attempted and rejected: the Firebase project is on Spark, and Artifact Registry requires Blaze billing. The API and scheduler explicitly bind `PAYSTACK_SECRET_KEY` through Firebase Secret Manager, ready for deployment after owner setup. Checkout remains closed while the API/payment configuration and delivery zones are unavailable.
 
-Hosting and Firestore rules are deployable separately. The owner has authorized publishing the updated storefront and Android testing APK. Deployment status is recorded in the task's final response.
+Firebase Hosting and Firestore rules were deployed successfully on October 5, 2026. The live storefront is https://jack-of-all-trades-marketplace.web.app. Firebase still reports that the `api` endpoint is missing; this is the Spark billing blocker above.
+
+Firebase Spark also rejected hosting the APK as an executable. The verified APK and checksum were published in the public [GitHub testing release v1.1.0](https://github.com/animandy92-svg/MARKETPLACE/releases/tag/v1.1.0), and the deployed footer links to that download. GitHub's uploaded asset digest matches the local APK SHA-256. The source was pushed to `main`.
+
+Browser checks confirmed the live slogan/theme, phones and laptops, the download link, support/policies, interactive category selection, and budget filtering at phone and desktop sizes. An existing cached PWA needed one refresh to receive the new version.
 
 No real money was moved, no supplier was recruited, and no physical stock, delivery, return, or support response was verified. The initial return policy is editable and needs owner review. The owner must configure real delivery fees/timing, enable Blaze, activate Paystack, configure the secret/webhook, check stock/photos/condition/prices, and complete a real purchase-delivery-refund acceptance run. See [PILOT.md](PILOT.md).
 

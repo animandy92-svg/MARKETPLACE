@@ -9,9 +9,12 @@ import { createHash } from 'node:crypto';
 const repo = 'animandy92-svg/MARKETPLACE', tag = 'v1.1.0';
 const mode = process.argv[2];
 if (!['--inspect', '--publish'].includes(mode)) throw new Error('Use --inspect or --publish');
-const credentials = execFileSync('git', ['credential', 'fill'], {
-  input: 'protocol=https\nhost=github.com\n\n', encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
-});
+let credentials;
+try {
+  credentials = execFileSync('git', ['credential', 'fill'], {
+    input: 'protocol=https\nhost=github.com\n\n', encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+  });
+} catch { throw new Error('GitHub authentication is unavailable'); }
 const token = credentials.split('\n').find(line => line.startsWith('password='))?.slice(9).trim();
 if (!token) throw new Error('GitHub authentication is unavailable');
 const headers = { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'marketplace-apk-release', 'X-GitHub-Api-Version': '2022-11-28' };
@@ -41,15 +44,18 @@ if (mode === '--inspect') {
       const hash = createHash('sha256');
       for await (const chunk of createReadStream(filename)) hash.update(chunk);
       if (existing.size !== size || existing.digest !== 'sha256:' + hash.digest('hex')) throw new Error(`Release asset ${name} differs; review it before replacing a published build`);
-      console.log(JSON.stringify({ name: existing.name, size: existing.size, url: existing.browser_download_url })); continue;
+      continue;
     }
     const url = release.data.upload_url.replace(/\{.*$/, '') + '?name=' + encodeURIComponent(name);
     const response = await fetch(url, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/octet-stream', 'Content-Length': String(size) },
       body: createReadStream(filename), duplex: 'half', signal: AbortSignal.timeout(600000) });
     if (!response.ok) throw new Error(`GitHub asset upload returned ${response.status}`);
-    const asset = await response.json();
-    console.log(JSON.stringify({ name: asset.name, size: asset.size, url: asset.browser_download_url }));
+    await response.json();
   }
   if (release.data.draft) await api(`/releases/${release.data.id}`, { method: 'PATCH', body: JSON.stringify({ draft: false }) });
-  console.log(JSON.stringify({ release: release.data.html_url }));
+  const published = await api(`/releases/${release.data.id}`);
+  if (published.status !== 200 || published.data.draft || published.data.tag_name !== tag) throw new Error('Release publication needs review');
+  console.log(JSON.stringify({ release: published.data.html_url, assets: published.data.assets.map(asset => ({
+    name: asset.name, size: asset.size, digest: asset.digest, url: asset.browser_download_url,
+  })) }));
 }
